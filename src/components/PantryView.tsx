@@ -13,10 +13,13 @@ import {
   Edit3,
   X,
   MapPin,
-  Sparkles
+  Sparkles,
+  ShieldAlert
 } from 'lucide-react';
-import { PantryItem, FoodCategory, StorageLocation } from '../types/pantry';
+import { PantryItem, FoodCategory, StorageLocation, AllergyId } from '../types/pantry';
 import { formatHumanDate, calculateDaysLeft } from '../data/mockData';
+import { getItemConflictingAllergies } from '../utils/allergyUtils';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface PantryViewProps {
   inventory: PantryItem[];
@@ -27,6 +30,7 @@ interface PantryViewProps {
   onCookItem: (itemName: string) => void;
   onDonateItem: (item: PantryItem) => void;
   onNavigateToTopSavers: () => void;
+  userAllergies?: AllergyId[];
 }
 
 export const PantryView: React.FC<PantryViewProps> = ({
@@ -37,8 +41,10 @@ export const PantryView: React.FC<PantryViewProps> = ({
   onNavigateToScanner,
   onCookItem,
   onDonateItem,
-  onNavigateToTopSavers
+  onNavigateToTopSavers,
+  userAllergies = []
 }) => {
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'expiry' | 'name' | 'category' | 'recent'>('expiry');
@@ -79,37 +85,51 @@ export const PantryView: React.FC<PantryViewProps> = ({
     return 0;
   });
 
+  const getCategoryLabel = (cat: string) => {
+    switch (cat) {
+      case 'all': return t('catAll');
+      case 'Expiring Soon (≤3d)': return t('catExpiringSoon');
+      case 'Produce': return t('catProduce');
+      case 'Dairy & Eggs': return t('catDairy');
+      case 'Meat & Seafood': return t('catMeat');
+      case 'Bakery': return t('catBakery');
+      case 'Pantry & Dry Goods': return t('catPantry');
+      case 'Frozen': return t('catFrozen');
+      default: return cat;
+    }
+  };
+
   const getUrgencyBadge = (days: number) => {
     if (days < 0) {
       return {
-        label: 'Expired',
+        label: t('statusExpired'),
         classes: 'text-stone-500 bg-stone-100 border-stone-300',
         dot: 'bg-stone-400'
       };
     }
     if (days === 0) {
       return {
-        label: 'Expires Today',
+        label: t('statusExpiresToday'),
         classes: 'text-red-800 bg-red-50 border-red-200 font-semibold',
         dot: 'bg-red-600'
       };
     }
     if (days === 1) {
       return {
-        label: '1 Day Left',
+        label: t('status1DayLeft'),
         classes: 'text-red-700 bg-red-50/80 border-red-200 font-medium',
         dot: 'bg-red-500'
       };
     }
     if (days <= 3) {
       return {
-        label: `${days} Days Left`,
+        label: `${days} ${t('statusDaysLeft')}`,
         classes: 'text-amber-800 bg-amber-50 border-amber-200 font-medium',
         dot: 'bg-amber-500'
       };
     }
     return {
-      label: `${days} Days Left`,
+      label: `${days} ${t('statusDaysLeft')}`,
       classes: 'text-emerald-800 bg-emerald-50/80 border-emerald-200 font-normal',
       dot: 'bg-emerald-600'
     };
@@ -126,10 +146,10 @@ export const PantryView: React.FC<PantryViewProps> = ({
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-bold text-amber-950">
-                {expiringSoonItems.length} item{expiringSoonItems.length > 1 ? 's' : ''} expiring within 72 hours
+                {t('pantryAlertHeadsUp')} ({expiringSoonItems.length})
               </h2>
               <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
-                Save them from spoiling! Cook with suggested zero-waste recipes or donate unopened groceries to nearby community fridges.
+                {t('pantryAlertMessage').replace('{count}', expiringSoonItems.length.toString())}
               </p>
             </div>
           </div>
@@ -139,14 +159,14 @@ export const PantryView: React.FC<PantryViewProps> = ({
               className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg shadow-xs transition-colors flex items-center gap-1.5"
             >
               <Utensils className="w-3.5 h-3.5" />
-              <span>Suggested Recipes</span>
+              <span>{t('actionCookItem')}</span>
             </button>
             <button
               onClick={() => onDonateItem(expiringSoonItems[0])}
               className="px-3 py-1.5 text-xs font-semibold text-stone-700 bg-white hover:bg-stone-50 border border-stone-200 rounded-lg transition-colors flex items-center gap-1.5"
             >
               <HeartHandshake className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Find Drop-offs</span>
+              <span>{t('actionDonateItem')}</span>
             </button>
             <button
               onClick={() => setNotificationDismissed(true)}
@@ -167,10 +187,10 @@ export const PantryView: React.FC<PantryViewProps> = ({
           </div>
           <div>
             <div className="text-xs uppercase font-bold tracking-wider text-amber-400">
-              FreshSaver Rewards Tier Active
+              {t('saversTitle')}
             </div>
             <p className="text-xs sm:text-sm text-stone-200">
-              You are in the <strong>Eco Champion tier (15% OFF)</strong>. Mark expiring food as cooked or donated to reach <strong>Master Saver (25% OFF)</strong>!
+              {t('saversSubtitle')}
             </p>
           </div>
         </div>
@@ -178,7 +198,7 @@ export const PantryView: React.FC<PantryViewProps> = ({
           onClick={onNavigateToTopSavers}
           className="px-3.5 py-1.5 bg-white hover:bg-stone-100 text-stone-900 text-xs font-semibold rounded-lg transition-colors shrink-0"
         >
-          View Top Savers & Coupons
+          {t('saversLeaderboardTitle')}
         </button>
       </div>
 
@@ -190,7 +210,7 @@ export const PantryView: React.FC<PantryViewProps> = ({
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
               type="text"
-              placeholder="Search groceries (e.g. Milk, Spinach, Chicken)..."
+              placeholder={t('actionSearchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all placeholder:text-stone-400"
@@ -212,10 +232,10 @@ export const PantryView: React.FC<PantryViewProps> = ({
               onChange={(e) => setSortBy(e.target.value as any)}
               className="px-3 py-2 text-xs font-medium bg-white border border-stone-200 rounded-xl text-stone-700 focus:outline-none focus:border-emerald-600 cursor-pointer"
             >
-              <option value="expiry">Sort: Expiring Earliest</option>
-              <option value="name">Sort: Alphabetical (A-Z)</option>
-              <option value="category">Sort: Category</option>
-              <option value="recent">Sort: Recently Added</option>
+              <option value="expiry">{t('actionSortEarliest')}</option>
+              <option value="name">{t('actionSortAlpha')}</option>
+              <option value="category">{t('actionSortCategory')}</option>
+              <option value="recent">{t('actionSortRecent')}</option>
             </select>
 
             {/* Quick Add / Scan button */}
@@ -224,7 +244,7 @@ export const PantryView: React.FC<PantryViewProps> = ({
               className="px-3.5 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
-              <span>Add Groceries</span>
+              <span>{t('actionAddGroceries')}</span>
             </button>
           </div>
         </div>
@@ -241,7 +261,7 @@ export const PantryView: React.FC<PantryViewProps> = ({
                   : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200/80'
               }`}
             >
-              {cat === 'all' ? 'All Items' : cat}
+              {getCategoryLabel(cat)}
             </button>
           ))}
         </div>
@@ -250,40 +270,51 @@ export const PantryView: React.FC<PantryViewProps> = ({
       {/* Inventory Items Count & Header */}
       <div className="flex items-center justify-between text-xs text-stone-500 px-1">
         <span>
-          Showing <strong>{sortedItems.length}</strong> of {inventory.length} grocery items
+          {t('pantryShowingCount').replace('{count}', sortedItems.length.toString()).replace('{total}', inventory.length.toString())}
         </span>
         <span className="text-[11px] text-stone-400">
-          Sorted by urgency
+          {t('actionSortEarliest')}
         </span>
       </div>
 
       {/* Items List */}
       {sortedItems.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-stone-200 p-12 text-center space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-stone-100 text-stone-400 mx-auto flex items-center justify-center">
-            <Utensils className="w-6 h-6" />
+        <div className="bg-white rounded-3xl border border-stone-200 p-12 text-center space-y-3.5 shadow-xs">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 mx-auto flex items-center justify-center text-2xl shadow-inner">
+            🍃
           </div>
-          <h3 className="text-base font-semibold text-stone-900">No groceries match your search</h3>
-          <p className="text-xs text-stone-500 max-w-sm mx-auto">
-            Try adjusting your search terms or scan new groceries to start tracking shelf life.
+          <h3 className="text-lg font-bold text-stone-900">
+            {inventory.length === 0 ? t('pantryEmptyTitle') : t('pantryEmptyTitle')}
+          </h3>
+          <p className="text-xs text-stone-500 max-w-sm mx-auto leading-relaxed">
+            {inventory.length === 0 
+              ? t('pantryEmptyDesc')
+              : t('pantryEmptyDesc')}
           </p>
           <button
             onClick={onNavigateToScanner}
-            className="mt-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-xl transition-colors inline-flex items-center gap-1.5"
+            className="mt-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs inline-flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            <span>Scan New Items</span>
+            <span>{t('pantryAddFirstBtn')}</span>
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           {sortedItems.map(item => {
             const urgency = getUrgencyBadge(item.daysLeft);
+            const conflictingAllergies = getItemConflictingAllergies(item.allergens, item.name, userAllergies);
+            const hasAllergyConflict = conflictingAllergies.length > 0;
+            const itemWeightKg = item.weightKg ?? (item.weightLbs ? Number((item.weightLbs * 0.453592).toFixed(1)) : 0.4);
 
             return (
               <div
                 key={item.id}
-                className="bg-white rounded-2xl p-4 border border-stone-200 hover:border-stone-300 transition-all shadow-xs flex flex-col justify-between"
+                className={`rounded-2xl p-4 border transition-all shadow-xs flex flex-col justify-between ${
+                  hasAllergyConflict
+                    ? 'bg-amber-50/40 border-amber-300 ring-1 ring-amber-300/60'
+                    : 'bg-white border-stone-200 hover:border-stone-300'
+                }`}
               >
                 <div>
                   <div className="flex items-start justify-between gap-3">
@@ -296,17 +327,23 @@ export const PantryView: React.FC<PantryViewProps> = ({
                           <span className={`w-1.5 h-1.5 rounded-full ${urgency.dot}`} />
                           <span>{urgency.label}</span>
                         </span>
+                        {hasAllergyConflict && (
+                          <span className="text-[11px] px-2 py-0.5 rounded-md bg-amber-100 text-amber-950 border border-amber-300 font-bold inline-flex items-center gap-1 shadow-2xs">
+                            <ShieldAlert className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                            <span>{t('allergyWarningBadge')}: {conflictingAllergies.map(a => `${a.icon} ${a.label}`).join(', ')}</span>
+                          </span>
+                        )}
                       </div>
 
                       {/* Clean Unboxed Metadata with · separator */}
                       <div className="text-xs text-stone-500 mt-1 flex items-center gap-2 flex-wrap">
-                        <span>{item.category}</span>
+                        <span>{getCategoryLabel(item.category)}</span>
                         <span aria-hidden="true" className="text-stone-300">·</span>
-                        <span>{item.location}</span>
+                        <span>{item.location === 'Fridge' ? t('locFridge') : item.location === 'Pantry' ? t('locPantry') : t('locFreezer')}</span>
                         <span aria-hidden="true" className="text-stone-300">·</span>
                         <span>{item.quantity}</span>
                         <span aria-hidden="true" className="text-stone-300">·</span>
-                        <span>Exp: {formatHumanDate(item.expiryDate)}</span>
+                        <span>{formatHumanDate(item.expiryDate)}</span>
                       </div>
 
                       {item.notes && (
@@ -320,7 +357,7 @@ export const PantryView: React.FC<PantryViewProps> = ({
                       <button
                         onClick={() => setEditingItem(item)}
                         className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors"
-                        title="Edit shelf life or details"
+                        title={t('actionEdit')}
                         aria-label="Edit item"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
@@ -328,7 +365,7 @@ export const PantryView: React.FC<PantryViewProps> = ({
                       <button
                         onClick={() => onDeleteItem(item.id)}
                         className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove item"
+                        title={t('actionDelete')}
                         aria-label="Delete item"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -340,35 +377,35 @@ export const PantryView: React.FC<PantryViewProps> = ({
                 {/* Card Action Row */}
                 <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between gap-2 flex-wrap">
                   <div className="text-[11px] text-stone-400">
-                    Est. value: <strong className="text-stone-700">${item.estimatedPrice.toFixed(2)}</strong> ({item.weightLbs} lbs)
+                    {t('pantryEstValue')}: <strong className="text-stone-700">€{item.estimatedPrice.toFixed(2)}</strong> ({itemWeightKg} kg)
                   </div>
 
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => onCookItem(item.name)}
                       className="px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors flex items-center gap-1"
-                      title="Find waste-reducing recipes for this item"
+                      title={t('actionCookItem')}
                     >
                       <Utensils className="w-3 h-3 text-emerald-600" />
-                      <span>Cook</span>
+                      <span>{t('actionCook')}</span>
                     </button>
 
                     <button
                       onClick={() => onDonateItem(item)}
                       className="px-2.5 py-1 text-xs font-semibold text-stone-700 bg-white hover:bg-stone-100 rounded-lg border border-stone-200 transition-colors flex items-center gap-1"
-                      title="Find local donation fridge or food bank"
+                      title={t('actionDonateItem')}
                     >
                       <HeartHandshake className="w-3 h-3 text-emerald-600" />
-                      <span>Donate</span>
+                      <span>{t('actionDonate')}</span>
                     </button>
 
                     <button
                       onClick={() => onMarkRescued(item, 'cooked')}
                       className="px-2.5 py-1 text-xs font-semibold text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors flex items-center gap-1"
-                      title="Mark as eaten & earn Top Saver points"
+                      title={t('actionMarkConsumed')}
                     >
                       <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      <span>Ate It!</span>
+                      <span>{t('actionMarkConsumed')}</span>
                     </button>
                   </div>
                 </div>
@@ -387,7 +424,7 @@ export const PantryView: React.FC<PantryViewProps> = ({
           />
           <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl border border-stone-200 p-6 z-10 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-stone-900">Edit Grocery Item</h3>
+              <h3 className="text-base font-bold text-stone-900">{t('actionEdit')}</h3>
               <button 
                 onClick={() => setEditingItem(null)}
                 className="p-1 rounded-lg text-stone-400 hover:text-stone-700"
@@ -398,7 +435,7 @@ export const PantryView: React.FC<PantryViewProps> = ({
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-stone-600 font-semibold mb-1">Item Name</label>
+                <label className="block text-stone-600 font-semibold mb-1">{t('scanManualName')}</label>
                 <input
                   type="text"
                   value={editingItem.name}
@@ -409,37 +446,37 @@ export const PantryView: React.FC<PantryViewProps> = ({
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-stone-600 font-semibold mb-1">Category</label>
+                  <label className="block text-stone-600 font-semibold mb-1">{t('actionSortCategory')}</label>
                   <select
                     value={editingItem.category}
                     onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value as FoodCategory })}
                     className="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600"
                   >
-                    <option value="Produce">Produce</option>
-                    <option value="Dairy & Eggs">Dairy & Eggs</option>
-                    <option value="Meat & Seafood">Meat & Seafood</option>
-                    <option value="Bakery">Bakery</option>
-                    <option value="Pantry & Dry Goods">Pantry & Dry Goods</option>
-                    <option value="Frozen">Frozen</option>
+                    <option value="Produce">{t('catProduce')}</option>
+                    <option value="Dairy & Eggs">{t('catDairy')}</option>
+                    <option value="Meat & Seafood">{t('catMeat')}</option>
+                    <option value="Bakery">{t('catBakery')}</option>
+                    <option value="Pantry & Dry Goods">{t('catPantry')}</option>
+                    <option value="Frozen">{t('catFrozen')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-stone-600 font-semibold mb-1">Storage Location</label>
+                  <label className="block text-stone-600 font-semibold mb-1">{t('locPantry')}</label>
                   <select
                     value={editingItem.location}
                     onChange={(e) => setEditingItem({ ...editingItem, location: e.target.value as StorageLocation })}
                     className="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-600"
                   >
-                    <option value="Fridge">Fridge</option>
-                    <option value="Pantry">Pantry</option>
-                    <option value="Freezer">Freezer</option>
+                    <option value="Fridge">{t('locFridge')}</option>
+                    <option value="Pantry">{t('locPantry')}</option>
+                    <option value="Freezer">{t('locFreezer')}</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-stone-600 font-semibold mb-1">Quantity / Size</label>
+                  <label className="block text-stone-600 font-semibold mb-1">{t('scanManualQty')}</label>
                   <input
                     type="text"
                     value={editingItem.quantity}
@@ -448,7 +485,7 @@ export const PantryView: React.FC<PantryViewProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-stone-600 font-semibold mb-1">Expiration Date</label>
+                  <label className="block text-stone-600 font-semibold mb-1">{t('scanManualExpiryDays')}</label>
                   <input
                     type="date"
                     value={editingItem.expiryDate}
@@ -463,7 +500,7 @@ export const PantryView: React.FC<PantryViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-stone-600 font-semibold mb-1">Notes / Storage Tips</label>
+                <label className="block text-stone-600 font-semibold mb-1">Notes</label>
                 <input
                   type="text"
                   value={editingItem.notes || ''}
@@ -479,7 +516,7 @@ export const PantryView: React.FC<PantryViewProps> = ({
                 onClick={() => setEditingItem(null)}
                 className="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-lg"
               >
-                Cancel
+                {t('actionCancel')}
               </button>
               <button
                 onClick={() => {
@@ -488,7 +525,7 @@ export const PantryView: React.FC<PantryViewProps> = ({
                 }}
                 className="px-4 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg"
               >
-                Save Changes
+                {t('actionSave')}
               </button>
             </div>
           </div>

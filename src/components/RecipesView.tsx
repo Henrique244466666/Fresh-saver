@@ -12,11 +12,15 @@ import {
   Pause, 
   RotateCcw, 
   CheckCircle2,
-  Share2
+  Share2,
+  ShieldCheck,
+  ShieldAlert,
+  ShoppingBag
 } from 'lucide-react';
-import { Recipe, PantryItem } from '../types/pantry';
+import { Recipe, PantryItem, AllergyId } from '../types/pantry';
 import { RECIPES_CATALOG } from '../data/mockData';
-import { ShoppingBag } from 'lucide-react';
+import { getRecipeConflictingAllergies } from '../utils/allergyUtils';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface RecipesViewProps {
   inventory: PantryItem[];
@@ -25,6 +29,7 @@ interface RecipesViewProps {
   onMealCooked: (usedIngredientNames: string[], recipeTitle: string) => void;
   onOpenAiRecipeGenerator: () => void;
   onAddMissingToShoppingList: (ingredients: { name: string; amount: string }[], recipeTitle: string) => void;
+  userAllergies?: AllergyId[];
 }
 
 export const RecipesView: React.FC<RecipesViewProps> = ({
@@ -33,9 +38,12 @@ export const RecipesView: React.FC<RecipesViewProps> = ({
   onClearPreSelectedIngredient,
   onMealCooked,
   onOpenAiRecipeGenerator,
-  onAddMissingToShoppingList
+  onAddMissingToShoppingList,
+  userAllergies = []
 }) => {
+  const { t } = useLanguage();
   const [selectedTag, setSelectedTag] = useState<string>('all');
+  const [filterSafeAllergies, setFilterSafeAllergies] = useState<boolean>(userAllergies.length > 0);
   const [activeRecipe, setActiveRecipe] = useState<Recipe | null>(null);
   const [timerSeconds, setTimerSeconds] = useState<number>(0);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
@@ -110,9 +118,13 @@ export const RecipesView: React.FC<RecipesViewProps> = ({
     return b.score - a.score;
   });
 
-  // Filter tags
+  // Filter tags & allergy exclusion
   const tags = ['all', 'High Protein', 'Vegetarian', 'Quick & Easy', 'Zero Waste', 'Fast Dinner'];
   const filteredRecipes = sortedRecipes.filter(recipe => {
+    if (filterSafeAllergies && userAllergies.length > 0) {
+      const conflicts = getRecipeConflictingAllergies(recipe, userAllergies);
+      if (conflicts.length > 0) return false;
+    }
     if (selectedTag === 'all') return true;
     return recipe.tags.includes(selectedTag);
   });
@@ -151,10 +163,10 @@ export const RecipesView: React.FC<RecipesViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-900">
-            Zero-Waste Recipe Suggestions
+            {t('recipesTitle')}
           </h1>
           <p className="text-sm text-stone-600 mt-1">
-            Recipes automatically prioritized by the foods in your pantry that need to be eaten first.
+            {t('recipesSubtitle')}
           </p>
         </div>
 
@@ -163,7 +175,7 @@ export const RecipesView: React.FC<RecipesViewProps> = ({
           className="px-4 py-2.5 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-800 hover:to-teal-900 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 self-start sm:self-center shrink-0 active:scale-95"
         >
           <Sparkles className="w-4 h-4 text-emerald-200" />
-          <span>Ask Gemini AI for Custom Recipe</span>
+          <span>{t('recipesGenerateAiBtn')}</span>
         </button>
       </div>
 
@@ -174,9 +186,9 @@ export const RecipesView: React.FC<RecipesViewProps> = ({
             <ChefHat className="w-4 h-4" />
           </div>
           <div>
-            <span className="font-bold text-teal-950">Have unique ingredients or dietary needs?</span>
+            <span className="font-bold text-teal-950">{t('recipesGenerateAiBtn')}</span>
             <p className="text-teal-800">
-              Gemini 3.8 Flash can generate a tailor-made dish using your exact expiring pantry items right now.
+              {t('recipesSubtitle')}
             </p>
           </div>
         </div>
@@ -184,7 +196,7 @@ export const RecipesView: React.FC<RecipesViewProps> = ({
           onClick={onOpenAiRecipeGenerator}
           className="px-3 py-1.5 bg-teal-800 hover:bg-teal-900 text-white font-semibold rounded-lg transition-colors shrink-0"
         >
-          Generate Custom Meal
+          {t('recipesGenerateAiBtn')}
         </button>
       </div>
 
@@ -193,44 +205,67 @@ export const RecipesView: React.FC<RecipesViewProps> = ({
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-950 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-emerald-600" />
-            <span>Filtering recipes using your pantry item: <strong>{preSelectedIngredient}</strong></span>
+            <span>{preSelectedIngredient}</span>
           </div>
           <button
             onClick={onClearPreSelectedIngredient}
             className="text-emerald-700 hover:text-emerald-900 font-semibold underline text-xs"
           >
-            Clear Filter
+            {t('actionCancel')}
           </button>
         </div>
       )}
 
-      {/* Tag Filters */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-        {tags.map(tag => (
+      {/* Tag Filters & Allergy Toggle */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+          {tags.map(tag => (
+            <button
+              key={tag}
+              onClick={() => setSelectedTag(tag)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
+                selectedTag === tag
+                  ? 'bg-stone-900 text-white'
+                  : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200/80'
+              }`}
+            >
+              {tag === 'all' ? t('recipesFilterAll') : tag}
+            </button>
+          ))}
+        </div>
+
+        {userAllergies.length > 0 && (
           <button
-            key={tag}
-            onClick={() => setSelectedTag(tag)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
-              selectedTag === tag
-                ? 'bg-stone-900 text-white'
-                : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200/80'
+            type="button"
+            onClick={() => setFilterSafeAllergies(!filterSafeAllergies)}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 shrink-0 ${
+              filterSafeAllergies
+                ? 'bg-emerald-700 text-white shadow-xs'
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
             }`}
           >
-            {tag === 'all' ? 'All Recipes' : tag}
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>{t('allergyFilterSafeOnly')}</span>
           </button>
-        ))}
+        )}
       </div>
 
       {/* Recipe Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredRecipes.map(recipe => {
           const hasUrgentRescue = recipe.rescuedUrgentNames.length > 0;
+          const recipeConflicts = getRecipeConflictingAllergies(recipe, userAllergies);
+          const hasConflict = recipeConflicts.length > 0;
 
           return (
             <div
               key={recipe.id}
               className={`bg-white rounded-2xl border transition-all flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-md ${
-                hasUrgentRescue ? 'border-amber-300 ring-1 ring-amber-200' : 'border-stone-200'
+                hasConflict
+                  ? 'border-amber-300 ring-1 ring-amber-300'
+                  : hasUrgentRescue 
+                  ? 'border-amber-300 ring-1 ring-amber-200' 
+                  : 'border-stone-200'
               }`}
             >
               <div>
@@ -263,8 +298,16 @@ export const RecipesView: React.FC<RecipesViewProps> = ({
                   </div>
                 </div>
 
+                {/* Allergen Conflict Alert Strip */}
+                {hasConflict && (
+                  <div className="bg-amber-100 px-4 py-2 border-b border-amber-300 text-xs text-amber-950 flex items-center gap-1.5 font-bold">
+                    <ShieldAlert className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                    <span>⚠️ {recipeConflicts.map(a => `${a.icon} ${a.label}`).join(', ')}</span>
+                  </div>
+                )}
+
                 {/* Urgent Rescue Alert Strip */}
-                {hasUrgentRescue && (
+                {hasUrgentRescue && !hasConflict && (
                   <div className="bg-amber-50 px-4 py-2 border-b border-amber-200 text-xs text-amber-900 flex items-center gap-1.5 font-semibold">
                     <Sparkles className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                     <span className="truncate">
@@ -325,7 +368,7 @@ export const RecipesView: React.FC<RecipesViewProps> = ({
                   className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5"
                 >
                   <Utensils className="w-3.5 h-3.5" />
-                  <span>Start Cooking & Rescue Food</span>
+                  <span>{t('recipesCookMealBtn')}</span>
                 </button>
               </div>
             </div>
@@ -468,19 +511,19 @@ export const RecipesView: React.FC<RecipesViewProps> = ({
                   onClick={() => setActiveRecipe(null)}
                   className="px-3.5 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-200 rounded-xl transition-colors"
                 >
-                  Close
+                  {t('actionCancel')}
                 </button>
                 <button
                   onClick={() => {
                     const missing = activeRecipe.ingredients.filter(ing => !isIngredientInPantry(ing.name));
                     onAddMissingToShoppingList(missing, activeRecipe.title);
-                    setToastMessage(`Added ${missing.length} missing ingredients to Shopping List!`);
+                    setToastMessage(`+${missing.length}`);
                     setTimeout(() => setToastMessage(null), 3000);
                   }}
                   className="px-3 py-2 text-xs font-semibold text-stone-700 bg-white hover:bg-stone-100 border border-stone-200 rounded-xl transition-colors flex items-center gap-1.5"
                 >
                   <ShoppingBag className="w-3.5 h-3.5 text-stone-600" />
-                  <span>Add Missing to Shopping List</span>
+                  <span>{t('recipesAddMissingToShop')}</span>
                 </button>
               </div>
 
@@ -489,7 +532,7 @@ export const RecipesView: React.FC<RecipesViewProps> = ({
                 className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center gap-2"
               >
                 <CheckCircle2 className="w-4 h-4 text-emerald-200" />
-                <span>Finished Cooking! (Log Food Saved)</span>
+                <span>{t('recipesCookMealBtn')}</span>
               </button>
             </div>
           </div>

@@ -23,148 +23,7 @@ export function calculateDaysLeft(expiryDateStr: string): number {
   return Math.round(diffTime / (1000 * 60 * 60 * 24));
 }
 
-export const INITIAL_PANTRY: PantryItem[] = [
-  {
-    id: 'item-1',
-    name: 'Baby Spinach',
-    category: 'Produce',
-    location: 'Fridge',
-    quantity: '1 bag (200g)',
-    daysLeft: 1,
-    expiryDate: getOffsetDateString(1),
-    addedDate: getOffsetDateString(-5),
-    barcode: '071112458921',
-    notes: 'Leaves still crisp, use in stir-fry or salad soon',
-    estimatedPrice: 3.49,
-    weightLbs: 0.5,
-  },
-  {
-    id: 'item-2',
-    name: 'Free-Range Chicken Breast',
-    category: 'Meat & Seafood',
-    location: 'Fridge',
-    quantity: '2 fillets (500g)',
-    daysLeft: 0,
-    expiryDate: getOffsetDateString(0),
-    addedDate: getOffsetDateString(-2),
-    barcode: '028475930211',
-    notes: 'Cook today or freeze immediately',
-    estimatedPrice: 7.99,
-    weightLbs: 1.1,
-  },
-  {
-    id: 'item-3',
-    name: 'Organic Whole Milk',
-    category: 'Dairy & Eggs',
-    location: 'Fridge',
-    quantity: '1 carton (1 Liter)',
-    daysLeft: 2,
-    expiryDate: getOffsetDateString(2),
-    addedDate: getOffsetDateString(-6),
-    barcode: '041220789432',
-    notes: 'Great for French toast, smoothies or béchamel',
-    estimatedPrice: 4.29,
-    weightLbs: 2.2,
-  },
-  {
-    id: 'item-4',
-    name: 'Artisan Sourdough Boule',
-    category: 'Bakery',
-    location: 'Pantry',
-    quantity: 'Half loaf (4 slices)',
-    daysLeft: 1,
-    expiryDate: getOffsetDateString(1),
-    addedDate: getOffsetDateString(-4),
-    barcode: '083492104523',
-    notes: 'Ideal for toast, croutons or panzanella',
-    estimatedPrice: 5.50,
-    weightLbs: 0.8,
-  },
-  {
-    id: 'item-5',
-    name: 'Pasture-Raised Eggs',
-    category: 'Dairy & Eggs',
-    location: 'Fridge',
-    quantity: '8 large eggs',
-    daysLeft: 8,
-    expiryDate: getOffsetDateString(8),
-    addedDate: getOffsetDateString(-10),
-    barcode: '019847230491',
-    notes: 'Grade A fresh brown eggs',
-    estimatedPrice: 4.89,
-    weightLbs: 1.0,
-  },
-  {
-    id: 'item-6',
-    name: 'Hass Avocados',
-    category: 'Produce',
-    location: 'Pantry',
-    quantity: '2 avocados',
-    daysLeft: 2,
-    expiryDate: getOffsetDateString(2),
-    addedDate: getOffsetDateString(-3),
-    barcode: '033383400192',
-    notes: 'Soft to gentle press, ready to eat',
-    estimatedPrice: 3.00,
-    weightLbs: 0.7,
-  },
-  {
-    id: 'item-7',
-    name: 'Plain Greek Yogurt',
-    category: 'Dairy & Eggs',
-    location: 'Fridge',
-    quantity: '1 tub (500g)',
-    daysLeft: 5,
-    expiryDate: getOffsetDateString(5),
-    addedDate: getOffsetDateString(-7),
-    barcode: '052210874521',
-    notes: 'Use in morning bowls or meat marinade',
-    estimatedPrice: 4.49,
-    weightLbs: 1.1,
-  },
-  {
-    id: 'item-8',
-    name: 'Organic Black Beans',
-    category: 'Pantry & Dry Goods',
-    location: 'Pantry',
-    quantity: '2 cans (15 oz)',
-    daysLeft: 180,
-    expiryDate: getOffsetDateString(180),
-    addedDate: getOffsetDateString(-20),
-    barcode: '074829103845',
-    notes: 'Pantry staple, long shelf life',
-    estimatedPrice: 2.18,
-    weightLbs: 1.8,
-  },
-  {
-    id: 'item-9',
-    name: 'Atlantic Salmon Fillet',
-    category: 'Meat & Seafood',
-    location: 'Fridge',
-    quantity: '1 piece (300g)',
-    daysLeft: 1,
-    expiryDate: getOffsetDateString(1),
-    addedDate: getOffsetDateString(-1),
-    barcode: '028475931102',
-    notes: 'Fresh catch, roast or pan-sear tonight',
-    estimatedPrice: 8.50,
-    weightLbs: 0.7,
-  },
-  {
-    id: 'item-10',
-    name: 'Ripe Bananas',
-    category: 'Produce',
-    location: 'Pantry',
-    quantity: '3 bananas',
-    daysLeft: 2,
-    expiryDate: getOffsetDateString(2),
-    addedDate: getOffsetDateString(-4),
-    barcode: '040110002134',
-    notes: 'Spotted peel, sweet for banana bread or smoothie',
-    estimatedPrice: 1.25,
-    weightLbs: 1.2,
-  }
-];
+export const INITIAL_PANTRY: PantryItem[] = [];
 
 export interface ShelfLifeGuideItem {
   name: string;
@@ -196,145 +55,6 @@ export const SHELF_LIFE_DATABASE: ShelfLifeGuideItem[] = [
   { name: 'Tofu', category: 'Dairy & Eggs', defaultLocation: 'Fridge', shelfLifeDays: 7, storageTip: 'Submerge opened tofu in fresh water, change water daily.' }
 ];
 
-export const SCANNABLE_BARCODE_PRESETS = [
-  {
-    barcode: '071112458921',
-    name: 'Organic Baby Spinach (300g)',
-    brand: 'Earthbound Farm',
-    category: 'Produce' as FoodCategory,
-    location: 'Fridge' as const,
-    quantity: '1 clamshell (300g)',
-    daysLeft: 4,
-    estimatedPrice: 3.99,
-    weightLbs: 0.66,
-    notes: 'Pre-washed triple organic greens',
-    nutritionHighlights: 'Rich in Iron, Vitamin K & Folate'
-  },
-  {
-    barcode: '041220789432',
-    name: 'Lactaid 2% Reduced Fat Milk',
-    brand: 'Lactaid Dairy',
-    category: 'Dairy & Eggs' as FoodCategory,
-    location: 'Fridge' as const,
-    quantity: '1 jug (0.5 Gallon)',
-    daysLeft: 9,
-    estimatedPrice: 4.49,
-    weightLbs: 4.2,
-    notes: 'Lactose-free fortified milk',
-    nutritionHighlights: '13g Protein per serving'
-  },
-  {
-    barcode: '028475930211',
-    name: 'Organic Boneless Chicken Thighs',
-    brand: 'Bell & Evans',
-    category: 'Meat & Seafood' as FoodCategory,
-    location: 'Fridge' as const,
-    quantity: '4 pieces (1.2 lbs)',
-    daysLeft: 3,
-    estimatedPrice: 8.99,
-    weightLbs: 1.2,
-    notes: 'Air-chilled organic poultry',
-    nutritionHighlights: 'Zero antibiotics, pasture-raised'
-  },
-  {
-    barcode: '052210874521',
-    name: 'Fage Total 5% Greek Yogurt',
-    brand: 'FAGE',
-    category: 'Dairy & Eggs' as FoodCategory,
-    location: 'Fridge' as const,
-    quantity: '1 tub (17.6 oz)',
-    daysLeft: 12,
-    estimatedPrice: 4.79,
-    weightLbs: 1.1,
-    notes: 'Rich and creamy strained yogurt',
-    nutritionHighlights: '16g Protein, Live active cultures'
-  },
-  {
-    barcode: '083492104523',
-    name: 'Rustic Sourdough Boule',
-    brand: 'La Brea Bakery',
-    category: 'Bakery' as FoodCategory,
-    location: 'Pantry' as const,
-    quantity: '1 whole loaf',
-    daysLeft: 5,
-    estimatedPrice: 5.99,
-    weightLbs: 1.2,
-    notes: 'Natural sourdough fermentation',
-    nutritionHighlights: 'No artificial preservatives'
-  },
-  {
-    barcode: '033383400192',
-    name: 'Organic Hass Avocados Bag',
-    brand: 'Del Monte',
-    category: 'Produce' as FoodCategory,
-    location: 'Pantry' as const,
-    quantity: 'Bag of 4 avocados',
-    daysLeft: 4,
-    estimatedPrice: 4.99,
-    weightLbs: 1.5,
-    notes: 'Good healthy monounsaturated fats',
-    nutritionHighlights: 'Heart-healthy potassium & fiber'
-  }
-];
-
-export const MOCK_RECEIPT_ITEMS: PantryItem[] = [
-  {
-    id: 'rcpt-1',
-    name: 'Strawberries Fresh',
-    category: 'Produce',
-    location: 'Fridge',
-    quantity: '1 lb clamshell',
-    daysLeft: 3,
-    expiryDate: getOffsetDateString(3),
-    addedDate: getOffsetDateString(0),
-    barcode: '049182374112',
-    notes: 'Scanned from Safeway receipt #4892',
-    estimatedPrice: 3.99,
-    weightLbs: 1.0,
-  },
-  {
-    id: 'rcpt-2',
-    name: 'Sharp Cheddar Cheese',
-    category: 'Dairy & Eggs',
-    location: 'Fridge',
-    quantity: '8 oz block',
-    daysLeft: 20,
-    expiryDate: getOffsetDateString(20),
-    addedDate: getOffsetDateString(0),
-    barcode: '038291049281',
-    notes: 'Scanned from Safeway receipt #4892',
-    estimatedPrice: 4.29,
-    weightLbs: 0.5,
-  },
-  {
-    id: 'rcpt-3',
-    name: 'Whole Grain Sliced Bread',
-    category: 'Bakery',
-    location: 'Pantry',
-    quantity: '1 loaf (24 oz)',
-    daysLeft: 6,
-    expiryDate: getOffsetDateString(6),
-    addedDate: getOffsetDateString(0),
-    barcode: '049182374330',
-    notes: 'Scanned from Safeway receipt #4892',
-    estimatedPrice: 3.89,
-    weightLbs: 1.5,
-  },
-  {
-    id: 'rcpt-4',
-    name: 'Atlantic Salmon Portion',
-    category: 'Meat & Seafood',
-    location: 'Fridge',
-    quantity: '2 portions (12 oz)',
-    daysLeft: 2,
-    expiryDate: getOffsetDateString(2),
-    addedDate: getOffsetDateString(0),
-    barcode: '028475939981',
-    notes: 'Scanned from Safeway receipt #4892',
-    estimatedPrice: 9.49,
-    weightLbs: 0.75,
-  }
-];
 
 export const RECIPES_CATALOG: Recipe[] = [
   {
@@ -361,7 +81,8 @@ export const RECIPES_CATALOG: Recipe[] = [
       'Reduce heat to medium-low, stir in minced garlic and milk, gently simmering for 2 minutes to create a pan sauce.',
       'Add spinach directly to the pan and toss for 60 seconds until wilted and vibrant green. Serve immediately.'
     ],
-    tipsForExpiringFood: 'Rescues Chicken Breast and Baby Spinach on their final fresh days. Extra milk softens the pan sauce.'
+    tipsForExpiringFood: 'Rescues Chicken Breast and Baby Spinach on their final fresh days. Extra milk softens the pan sauce.',
+    allergens: ['dairy']
   },
   {
     id: 'rec-2',
@@ -388,7 +109,8 @@ export const RECIPES_CATALOG: Recipe[] = [
       'Cook on stovetop for 3-4 minutes until edges set, then broil on high for 2 minutes until puffed and golden.',
       'Slice into wedges and top with fresh avocado slices.'
     ],
-    tipsForExpiringFood: 'Perfect for using up slightly wilted greens, loose eggs, and approaching avocados.'
+    tipsForExpiringFood: 'Perfect for using up slightly wilted greens, loose eggs, and approaching avocados.',
+    allergens: ['eggs', 'dairy']
   },
   {
     id: 'rec-3',
@@ -416,7 +138,8 @@ export const RECIPES_CATALOG: Recipe[] = [
       'In the same skillet, slice bananas lengthwise or into rounds, pan-searing with a drizzle of maple syrup for 2 minutes until caramelized.',
       'Stack the toast, spoon warm caramelized bananas over the top, and serve warm.'
     ],
-    tipsForExpiringFood: 'Stale sourdough absorbs egg custard much better than fresh bread without getting soggy. Turns spotted bananas into gourmet caramel topping.'
+    tipsForExpiringFood: 'Stale sourdough absorbs egg custard much better than fresh bread without getting soggy. Turns spotted bananas into gourmet caramel topping.',
+    allergens: ['wheat_gluten', 'eggs', 'dairy']
   },
   {
     id: 'rec-4',
@@ -443,7 +166,8 @@ export const RECIPES_CATALOG: Recipe[] = [
       'Toss diced ripe avocado with lime juice, pinch of salt, and a handful of chopped spinach.',
       'Plate the crispy salmon and spoon the refreshing avocado salsa over top.'
     ],
-    tipsForExpiringFood: 'Saves delicate seafood on day 1 and pairs with soft avocados that must be consumed today.'
+    tipsForExpiringFood: 'Saves delicate seafood on day 1 and pairs with soft avocados that must be consumed today.',
+    allergens: ['fish']
   },
   {
     id: 'rec-5',
@@ -460,16 +184,17 @@ export const RECIPES_CATALOG: Recipe[] = [
       { name: 'Organic Black Beans', amount: '1 can, drained & rinsed' },
       { name: 'Hass Avocados', amount: '1 avocado, sliced' },
       { name: 'Baby Spinach', amount: '2 cups fresh' },
-      { name: 'Plain Greek Yogurt', amount: '2 tbsp (dollop on top)' },
+      { name: 'Olive Oil', amount: '1 tsp' },
       { name: 'Cumin & Lime', amount: '1/2 tsp each' }
     ],
     instructions: [
       'Warm rinsed black beans in a small saucepan with cumin, garlic powder, and a splash of water for 3 minutes.',
       'Layer a bed of crisp baby spinach into shallow bowls.',
       'Spoon warm seasoned black beans over the greens to lightly soften them.',
-      'Fan avocado slices across the top and add a cool dollop of Greek yogurt as a healthy crema alternative.'
+      'Fan avocado slices across the top with a squeeze of fresh lime.'
     ],
-    tipsForExpiringFood: 'Combines pantry canned beans with expiring fresh avocado and greens for zero prep time.'
+    tipsForExpiringFood: 'Combines pantry canned beans with expiring fresh avocado and greens for zero prep time.',
+    allergens: []
   },
   {
     id: 'rec-6',
@@ -486,14 +211,15 @@ export const RECIPES_CATALOG: Recipe[] = [
       { name: 'Plain Greek Yogurt', amount: '1 cup' },
       { name: 'Ripe Bananas', amount: '1 sliced' },
       { name: 'Honey or Maple', amount: '1 tbsp' },
-      { name: 'Cinnamon or Nuts', amount: '1 tbsp optional' }
+      { name: 'Cinnamon', amount: '1/4 tsp' }
     ],
     instructions: [
       'Layer Greek yogurt into a glass or bowl.',
       'Top with ripe banana slices and any soft fruits in your fridge.',
       'Drizzle with honey and sprinkle with cinnamon.'
     ],
-    tipsForExpiringFood: 'Fastest way to turn dairy and ripe fruits into an energizing snack.'
+    tipsForExpiringFood: 'Fastest way to turn dairy and ripe fruits into an energizing snack.',
+    allergens: ['dairy']
   }
 ];
 
@@ -597,6 +323,8 @@ export const INITIAL_TOP_SAVERS: import('../types/pantry').TopSaverUser[] = [
     name: 'Elena Rostova',
     avatar: 'ER',
     tier: 'Master Saver',
+    rescuedKg: 26.5,
+    eurosSaved: 260.00,
     rescuedLbs: 58.4,
     dollarsSaved: 284.50,
     streakDays: 42,
@@ -609,6 +337,8 @@ export const INITIAL_TOP_SAVERS: import('../types/pantry').TopSaverUser[] = [
     name: 'Marcus Chen',
     avatar: 'MC',
     tier: 'Master Saver',
+    rescuedKg: 23.2,
+    eurosSaved: 225.00,
     rescuedLbs: 51.2,
     dollarsSaved: 246.00,
     streakDays: 35,
@@ -621,6 +351,8 @@ export const INITIAL_TOP_SAVERS: import('../types/pantry').TopSaverUser[] = [
     name: 'Aisha Al-Mansoor',
     avatar: 'AA',
     tier: 'Master Saver',
+    rescuedKg: 21.2,
+    eurosSaved: 195.50,
     rescuedLbs: 46.8,
     dollarsSaved: 218.75,
     streakDays: 28,
@@ -630,13 +362,14 @@ export const INITIAL_TOP_SAVERS: import('../types/pantry').TopSaverUser[] = [
   {
     id: 'usr-4',
     rank: 4,
-    name: 'You (Alex Miller)',
-    avatar: 'AM',
+    name: 'Elena Rostova',
+    avatar: 'ER',
     tier: 'Eco Champion',
+    rescuedKg: 17.5,
+    eurosSaved: 158.00,
     rescuedLbs: 38.6,
     dollarsSaved: 174.20,
     streakDays: 19,
-    isCurrentUser: true,
     eligibleDiscount: '15% OFF',
     badge: '🌟 Zero Waste Chef'
   },
@@ -646,6 +379,8 @@ export const INITIAL_TOP_SAVERS: import('../types/pantry').TopSaverUser[] = [
     name: 'Liam Gallagher',
     avatar: 'LG',
     tier: 'Eco Champion',
+    rescuedKg: 15.4,
+    eurosSaved: 138.00,
     rescuedLbs: 34.1,
     dollarsSaved: 152.00,
     streakDays: 16,
@@ -658,6 +393,8 @@ export const INITIAL_TOP_SAVERS: import('../types/pantry').TopSaverUser[] = [
     name: 'Sofia Ramirez',
     avatar: 'SR',
     tier: 'Eco Champion',
+    rescuedKg: 13.4,
+    eurosSaved: 122.50,
     rescuedLbs: 29.5,
     dollarsSaved: 135.50,
     streakDays: 14,
@@ -670,6 +407,8 @@ export const INITIAL_TOP_SAVERS: import('../types/pantry').TopSaverUser[] = [
     name: 'David Kim',
     avatar: 'DK',
     tier: 'Conscious Consumer',
+    rescuedKg: 10.3,
+    eurosSaved: 89.00,
     rescuedLbs: 22.8,
     dollarsSaved: 98.40,
     streakDays: 9,
@@ -682,11 +421,28 @@ export const INITIAL_TOP_SAVERS: import('../types/pantry').TopSaverUser[] = [
     name: 'Priya Patel',
     avatar: 'PP',
     tier: 'Conscious Consumer',
+    rescuedKg: 8.2,
+    eurosSaved: 74.00,
     rescuedLbs: 18.2,
     dollarsSaved: 82.00,
     streakDays: 8,
     eligibleDiscount: '10% OFF',
     badge: '🌱 Fresh Sprout'
+  },
+  {
+    id: 'usr-current',
+    rank: 9,
+    name: 'You',
+    avatar: 'ME',
+    tier: 'Rising Saver',
+    rescuedKg: 0,
+    eurosSaved: 0,
+    rescuedLbs: 0,
+    dollarsSaved: 0,
+    streakDays: 0,
+    isCurrentUser: true,
+    eligibleDiscount: '5% OFF',
+    badge: '🌱 Fresh Starter'
   }
 ];
 
@@ -698,11 +454,11 @@ export const INITIAL_DISCOUNT_REWARDS: import('../types/pantry').DiscountReward[
     discountValue: '25% OFF',
     description: 'Exclusive 25% off your entire fresh produce & bulk goods order.',
     minTier: 'Master Saver',
-    minLbsRequired: 45,
+    minKgRequired: 20,
     expiryDate: getOffsetDateString(30),
     category: 'Organic Markets',
     claimed: false,
-    terms: 'Valid on in-store and online orders over $40. Maximum discount $35.'
+    terms: 'Valid on in-store and online orders over 40€. Maximum discount 35€.'
   },
   {
     id: 'rew-2',
@@ -711,7 +467,7 @@ export const INITIAL_DISCOUNT_REWARDS: import('../types/pantry').DiscountReward[
     discountValue: '15% OFF',
     description: '15% off any seasonal fruit and vegetable baskets.',
     minTier: 'Eco Champion',
-    minLbsRequired: 25,
+    minKgRequired: 12,
     expiryDate: getOffsetDateString(21),
     category: 'Produce & Groceries',
     claimed: false,
@@ -724,7 +480,7 @@ export const INITIAL_DISCOUNT_REWARDS: import('../types/pantry').DiscountReward[
     discountValue: 'Free Loaf Voucher',
     description: 'Free day-fresh artisan sourdough or multigrain loaf with any purchase.',
     minTier: 'Eco Champion',
-    minLbsRequired: 25,
+    minKgRequired: 12,
     expiryDate: getOffsetDateString(14),
     category: 'Bakery & Deli',
     claimed: false,
@@ -737,7 +493,7 @@ export const INITIAL_DISCOUNT_REWARDS: import('../types/pantry').DiscountReward[
     discountValue: '10% OFF',
     description: '10% grocery coupon celebrating waste reduction stewards.',
     minTier: 'Conscious Consumer',
-    minLbsRequired: 15,
+    minKgRequired: 7,
     expiryDate: getOffsetDateString(15),
     category: 'Produce & Groceries',
     claimed: false,
@@ -747,10 +503,10 @@ export const INITIAL_DISCOUNT_REWARDS: import('../types/pantry').DiscountReward[
     id: 'rew-5',
     code: 'FRESHPASS-DELIVERY',
     partnerStore: 'FarmDirect Local Express',
-    discountValue: '$10 Credit',
-    description: '$10 credit toward zero-emissions local farm produce delivery.',
+    discountValue: '10€ Credit',
+    description: '10€ credit toward zero-emissions local farm produce delivery.',
     minTier: 'Rising Saver',
-    minLbsRequired: 5,
+    minKgRequired: 2,
     expiryDate: getOffsetDateString(45),
     category: 'Local Delivery',
     claimed: false,

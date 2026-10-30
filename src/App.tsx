@@ -11,6 +11,9 @@ import { AccountView } from './components/AccountView';
 import { NotificationDrawer } from './components/NotificationDrawer';
 import { AuthModal } from './components/AuthModal';
 import { AiRecipeModal } from './components/AiRecipeModal';
+import { AndroidDownloadModal } from './components/AndroidDownloadModal';
+import { OfflineIndicator } from './components/OfflineIndicator';
+import { LanguageProvider } from './i18n/LanguageContext';
 import { 
   PantryItem, 
   TopSaverUser, 
@@ -18,7 +21,8 @@ import {
   UserImpactStats,
   ShoppingListItem,
   AuthUser,
-  Recipe
+  Recipe,
+  AllergyId
 } from './types/pantry';
 import { 
   INITIAL_PANTRY, 
@@ -28,100 +32,74 @@ import {
   getOffsetDateString,
   RECIPES_CATALOG
 } from './data/mockData';
+import { detectItemAllergens } from './utils/allergyUtils';
 
-const INITIAL_SHOPPING_LIST: ShoppingListItem[] = [
-  {
-    id: 'shop-1',
-    name: 'Fresh Strawberries',
-    category: 'Produce',
-    quantity: '1 lb clamshell',
-    notes: 'For breakfast yogurt bowls',
-    checked: true,
-    estimatedPrice: 3.99,
-    defaultLocation: 'Fridge',
-    defaultShelfLifeDays: 3,
-    addedAt: new Date().toISOString()
-  },
-  {
-    id: 'shop-2',
-    name: 'Extra Virgin Olive Oil',
-    category: 'Pantry & Dry Goods',
-    quantity: '1 bottle (500ml)',
-    notes: 'Pantry staple for dressings and skillet cooking',
-    checked: false,
-    estimatedPrice: 8.49,
-    defaultLocation: 'Pantry',
-    defaultShelfLifeDays: 180,
-    addedAt: new Date().toISOString()
-  },
-  {
-    id: 'shop-3',
-    name: 'Sharp Cheddar Cheese',
-    category: 'Dairy & Eggs',
-    quantity: '8 oz block',
-    notes: 'For frittatas and snacks',
-    checked: true,
-    estimatedPrice: 4.29,
-    defaultLocation: 'Fridge',
-    defaultShelfLifeDays: 21,
-    addedAt: new Date().toISOString()
-  }
-];
+const INITIAL_SHOPPING_LIST: ShoppingListItem[] = [];
 
 export default function App() {
   // Navigation tab
   const [currentTab, setCurrentTab] = useState<'pantry' | 'scanner' | 'recipes' | 'donate' | 'top-savers' | 'shopping-list' | 'account'>('pantry');
   
+  // User Personal Allergies State
+  const [userAllergies, setUserAllergies] = useState<AllergyId[]>(() => {
+    try {
+      const saved = localStorage.getItem('freshsaver_user_allergies');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+  
   // Modals & Drawers
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAiRecipeModalOpen, setIsAiRecipeModalOpen] = useState(false);
+  const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
 
   // Cross-feature filters
   const [preSelectedIngredient, setPreSelectedIngredient] = useState<string | undefined>(undefined);
   const [preSelectedDonationItem, setPreSelectedDonationItem] = useState<PantryItem | null>(null);
 
-  // Authenticated user
+  // Authenticated user (default to null for real user login/signup)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
     try {
       const saved = localStorage.getItem('freshsaver_user');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.id !== 'usr-default-alex' && parsed.email !== 'alex.miller@example.com') {
+          return parsed;
+        }
+      }
     } catch {}
-    return {
-      id: 'usr-default-alex',
-      name: 'Alex Miller',
-      email: 'alex.miller@example.com',
-      token: 'tok_alex_default',
-      createdAt: '2026-09-01T08:00:00Z',
-      lastSyncAt: new Date().toISOString()
-    };
+    return null;
   });
 
-  // LocalStorage-backed state for inventory
+  // LocalStorage-backed state for inventory (clean start without sample items)
   const [inventory, setInventory] = useState<PantryItem[]>(() => {
     try {
       const saved = localStorage.getItem('freshsaver_inventory');
       if (saved) {
         const parsed: PantryItem[] = JSON.parse(saved);
-        return parsed.map(item => ({
+        // Exclude legacy mock items
+        const realItems = parsed.filter(item => !item.id.startsWith('item-'));
+        return realItems.map(item => ({
           ...item,
           daysLeft: calculateDaysLeft(item.expiryDate)
         }));
       }
     } catch {}
-    return INITIAL_PANTRY.map(item => ({
-      ...item,
-      daysLeft: calculateDaysLeft(item.expiryDate)
-    }));
+    return [];
   });
 
-  // Shopping List
+  // Shopping List (clean start without sample items)
   const [shoppingList, setShoppingList] = useState<ShoppingListItem[]>(() => {
     try {
       const saved = localStorage.getItem('freshsaver_shopping_list');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed: ShoppingListItem[] = JSON.parse(saved);
+        return parsed.filter(item => !item.id.startsWith('shop-'));
+      }
     } catch {}
-    return INITIAL_SHOPPING_LIST;
+    return [];
   });
 
   const [topSavers, setTopSavers] = useState<TopSaverUser[]>(() => {
@@ -143,16 +121,47 @@ export default function App() {
   const [userStats, setUserStats] = useState<UserImpactStats>(() => {
     try {
       const saved = localStorage.getItem('freshsaver_user_stats');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          rescuedKg: parsed.rescuedKg ?? (parsed.rescuedLbs ? Number((parsed.rescuedLbs * 0.453592).toFixed(1)) : 0),
+          eurosSaved: parsed.eurosSaved ?? (parsed.dollarsSaved ?? 0),
+          rescuedLbs: parsed.rescuedLbs ?? 0,
+          dollarsSaved: parsed.dollarsSaved ?? 0,
+          co2SavedKg: parsed.co2SavedKg ?? 0,
+          itemsCooked: parsed.itemsCooked ?? 0,
+          itemsDonated: parsed.itemsDonated ?? 0
+        };
+      }
     } catch {}
     return {
-      rescuedLbs: 38.6,
-      dollarsSaved: 174.20,
-      co2SavedKg: 54.0,
-      itemsCooked: 16,
-      itemsDonated: 5
+      rescuedKg: 0,
+      eurosSaved: 0,
+      rescuedLbs: 0,
+      dollarsSaved: 0,
+      co2SavedKg: 0,
+      itemsCooked: 0,
+      itemsDonated: 0
     };
   });
+
+  const handleToggleAllergy = (allergyId: AllergyId) => {
+    setUserAllergies(prev => {
+      const next = prev.includes(allergyId)
+        ? prev.filter(id => id !== allergyId)
+        : [...prev, allergyId];
+      try {
+        localStorage.setItem('freshsaver_user_allergies', JSON.stringify(next));
+      } catch {}
+      if (currentUser) {
+        setCurrentUser({
+          ...currentUser,
+          allergies: next
+        });
+      }
+      return next;
+    });
+  };
 
   // Sync to localStorage
   useEffect(() => {
@@ -229,14 +238,16 @@ export default function App() {
   };
 
   // Helper to record saved food and update leaderboard
-  const recordFoodSaved = (lbs: number, dollars: number, type: 'cooked' | 'donated') => {
-    const newLbs = Number((userStats.rescuedLbs + lbs).toFixed(1));
-    const newDollars = Number((userStats.dollarsSaved + dollars).toFixed(2));
-    const newCo2 = Number((userStats.co2SavedKg + (lbs * 1.4)).toFixed(1));
+  const recordFoodSaved = (kg: number, euros: number, type: 'cooked' | 'donated') => {
+    const newKg = Number(((userStats.rescuedKg ?? 0) + kg).toFixed(1));
+    const newEuros = Number(((userStats.eurosSaved ?? 0) + euros).toFixed(2));
+    const newCo2 = Number((userStats.co2SavedKg + (kg * 3.1)).toFixed(1));
 
     const updatedStats: UserImpactStats = {
-      rescuedLbs: newLbs,
-      dollarsSaved: newDollars,
+      rescuedKg: newKg,
+      eurosSaved: newEuros,
+      rescuedLbs: Number((newKg * 2.20462).toFixed(1)),
+      dollarsSaved: Number((newEuros * 1.08).toFixed(2)),
       co2SavedKg: newCo2,
       itemsCooked: type === 'cooked' ? userStats.itemsCooked + 1 : userStats.itemsCooked,
       itemsDonated: type === 'donated' ? userStats.itemsDonated + 1 : userStats.itemsDonated,
@@ -248,21 +259,23 @@ export default function App() {
         if (u.isCurrentUser) {
           let newTier = u.tier;
           let newDiscount = u.eligibleDiscount;
-          if (newLbs >= 45) {
+          if (newKg >= 20) {
             newTier = 'Master Saver';
             newDiscount = '25% OFF';
-          } else if (newLbs >= 25) {
+          } else if (newKg >= 12) {
             newTier = 'Eco Champion';
             newDiscount = '15% OFF';
-          } else if (newLbs >= 15) {
+          } else if (newKg >= 7) {
             newTier = 'Conscious Consumer';
             newDiscount = '10% OFF';
           }
 
           return {
             ...u,
-            rescuedLbs: newLbs,
-            dollarsSaved: newDollars,
+            rescuedKg: newKg,
+            eurosSaved: newEuros,
+            rescuedLbs: Number((newKg * 2.20462).toFixed(1)),
+            dollarsSaved: Number((newEuros * 1.08).toFixed(2)),
             tier: newTier,
             eligibleDiscount: newDiscount
           };
@@ -271,7 +284,7 @@ export default function App() {
       });
 
       return updated
-        .sort((a, b) => b.rescuedLbs - a.rescuedLbs)
+        .sort((a, b) => (b.rescuedKg ?? b.rescuedLbs) - (a.rescuedKg ?? a.rescuedLbs))
         .map((user, index) => ({
           ...user,
           rank: index + 1
@@ -280,13 +293,13 @@ export default function App() {
   };
 
   const handleMarkRescued = (item: PantryItem, method: 'cooked' | 'donated') => {
-    recordFoodSaved(item.weightLbs, item.estimatedPrice, method);
+    recordFoodSaved(item.weightKg ?? 0.4, item.estimatedPrice, method);
     handleDeleteItem(item.id);
   };
 
   const handleMealCooked = (usedIngredientNames: string[], _recipeTitle: string) => {
-    let totalLbs = 0;
-    let totalDollars = 0;
+    let totalKg = 0;
+    let totalEuros = 0;
 
     setInventory(prev => {
       const remaining: PantryItem[] = [];
@@ -297,8 +310,8 @@ export default function App() {
         );
 
         if (matches) {
-          totalLbs += item.weightLbs;
-          totalDollars += item.estimatedPrice;
+          totalKg += (item.weightKg ?? 0.4);
+          totalEuros += item.estimatedPrice;
         } else {
           remaining.push(item);
         }
@@ -306,21 +319,21 @@ export default function App() {
       return remaining;
     });
 
-    recordFoodSaved(totalLbs > 0 ? totalLbs : 1.2, totalDollars > 0 ? totalDollars : 6.50, 'cooked');
+    recordFoodSaved(totalKg > 0 ? totalKg : 0.5, totalEuros > 0 ? totalEuros : 4.50, 'cooked');
   };
 
   const handleDonationCompleted = (donatedItems: PantryItem[], _centerName: string) => {
-    let totalLbs = 0;
-    let totalDollars = 0;
+    let totalKg = 0;
+    let totalEuros = 0;
 
     const donatedIds = donatedItems.map(i => i.id);
     donatedItems.forEach(item => {
-      totalLbs += item.weightLbs;
-      totalDollars += item.estimatedPrice;
+      totalKg += (item.weightKg ?? 0.4);
+      totalEuros += item.estimatedPrice;
     });
 
     setInventory(prev => prev.filter(i => !donatedIds.includes(i.id)));
-    recordFoodSaved(totalLbs, totalDollars, 'donated');
+    recordFoodSaved(totalKg, totalEuros, 'donated');
     setPreSelectedDonationItem(null);
   };
 
@@ -359,8 +372,10 @@ export default function App() {
       expiryDate: getOffsetDateString(b.defaultShelfLifeDays),
       addedDate: getOffsetDateString(0),
       notes: b.notes ? `Bought from shopping list: ${b.notes}` : 'Purchased from grocery shopping list',
-      estimatedPrice: b.estimatedPrice || 3.50,
-      weightLbs: 0.8
+      estimatedPrice: b.estimatedPrice || 2.50,
+      weightKg: 0.4,
+      weightLbs: 0.88,
+      allergens: b.allergens || detectItemAllergens(b.name)
     }));
 
     // Add to active inventory
@@ -413,146 +428,166 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col antialiased text-stone-900 pb-20 md:pb-8">
-      {/* Top Bar */}
-      <Header
-        currentTab={currentTab}
-        onSelectTab={(tab) => {
-          if (tab !== 'recipes') setPreSelectedIngredient(undefined);
-          setCurrentTab(tab);
-        }}
-        inventory={inventory}
-        shoppingList={shoppingList}
-        currentUser={currentUser}
-        onOpenNotifications={() => setIsNotificationOpen(true)}
-        onOpenTopSavers={() => setCurrentTab('top-savers')}
-        onOpenAuth={() => setIsAuthModalOpen(true)}
-      />
+    <LanguageProvider>
+      <div className="min-h-screen bg-stone-50 flex flex-col antialiased text-stone-900 pb-20 md:pb-8">
+        {/* Top Bar */}
+        <Header
+          currentTab={currentTab}
+          onSelectTab={(tab) => {
+            if (tab !== 'recipes') setPreSelectedIngredient(undefined);
+            setCurrentTab(tab);
+          }}
+          inventory={inventory}
+          shoppingList={shoppingList}
+          currentUser={currentUser}
+          onOpenNotifications={() => setIsNotificationOpen(true)}
+          onOpenTopSavers={() => setCurrentTab('top-savers')}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
+          onOpenAndroidDownload={() => setIsAndroidModalOpen(true)}
+        />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
-        {currentTab === 'pantry' && (
-          <PantryView
-            inventory={inventory}
-            onDeleteItem={handleDeleteItem}
-            onUpdateItem={handleUpdateItem}
-            onMarkRescued={handleMarkRescued}
-            onNavigateToScanner={() => setCurrentTab('scanner')}
-            onCookItem={handleCookItemFromPantry}
-            onDonateItem={handleDonateItemFromPantry}
-            onNavigateToTopSavers={() => setCurrentTab('top-savers')}
-          />
-        )}
+        {/* Main Content Area */}
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+          {currentTab === 'pantry' && (
+            <PantryView
+              inventory={inventory}
+              onDeleteItem={handleDeleteItem}
+              onUpdateItem={handleUpdateItem}
+              onMarkRescued={handleMarkRescued}
+              onNavigateToScanner={() => setCurrentTab('scanner')}
+              onCookItem={handleCookItemFromPantry}
+              onDonateItem={handleDonateItemFromPantry}
+              onNavigateToTopSavers={() => setCurrentTab('top-savers')}
+              userAllergies={userAllergies}
+            />
+          )}
 
-        {currentTab === 'shopping-list' && (
-          <ShoppingListView
-            shoppingList={shoppingList}
-            onAddShoppingItem={handleAddShoppingItem}
-            onToggleCheckItem={handleToggleCheckShoppingItem}
-            onDeleteShoppingItem={handleDeleteShoppingItem}
-            onConvertBoughtToPantry={handleConvertBoughtToPantry}
-            onNavigateToPantry={() => setCurrentTab('pantry')}
-          />
-        )}
+          {currentTab === 'shopping-list' && (
+            <ShoppingListView
+              shoppingList={shoppingList}
+              onAddShoppingItem={handleAddShoppingItem}
+              onToggleCheckItem={handleToggleCheckShoppingItem}
+              onDeleteShoppingItem={handleDeleteShoppingItem}
+              onConvertBoughtToPantry={handleConvertBoughtToPantry}
+              onNavigateToPantry={() => setCurrentTab('pantry')}
+              userAllergies={userAllergies}
+            />
+          )}
 
-        {currentTab === 'scanner' && (
-          <ScannerView
-            onAddItem={handleAddItem}
-            onAddBatchItems={handleAddBatchItems}
-            onNavigateToPantry={() => setCurrentTab('pantry')}
-          />
-        )}
+          {currentTab === 'scanner' && (
+            <ScannerView
+              onAddItem={handleAddItem}
+              onAddBatchItems={handleAddBatchItems}
+              onNavigateToPantry={() => setCurrentTab('pantry')}
+              userAllergies={userAllergies}
+            />
+          )}
 
-        {currentTab === 'recipes' && (
-          <RecipesView
-            inventory={inventory}
-            preSelectedIngredient={preSelectedIngredient}
-            onClearPreSelectedIngredient={() => setPreSelectedIngredient(undefined)}
-            onMealCooked={handleMealCooked}
-            onOpenAiRecipeGenerator={() => setIsAiRecipeModalOpen(true)}
-            onAddMissingToShoppingList={handleAddMissingToShoppingList}
-          />
-        )}
+          {currentTab === 'recipes' && (
+            <RecipesView
+              inventory={inventory}
+              preSelectedIngredient={preSelectedIngredient}
+              onClearPreSelectedIngredient={() => setPreSelectedIngredient(undefined)}
+              onMealCooked={handleMealCooked}
+              onOpenAiRecipeGenerator={() => setIsAiRecipeModalOpen(true)}
+              onAddMissingToShoppingList={handleAddMissingToShoppingList}
+              userAllergies={userAllergies}
+            />
+          )}
 
-        {currentTab === 'donate' && (
-          <DonationView
-            inventory={inventory}
-            preSelectedDonationItem={preSelectedDonationItem}
-            onClearPreSelectedDonationItem={() => setPreSelectedDonationItem(null)}
-            onDonationCompleted={handleDonationCompleted}
-            onNavigateToTopSavers={() => setCurrentTab('top-savers')}
-          />
-        )}
+          {currentTab === 'donate' && (
+            <DonationView
+              inventory={inventory}
+              preSelectedDonationItem={preSelectedDonationItem}
+              onClearPreSelectedDonationItem={() => setPreSelectedDonationItem(null)}
+              onDonationCompleted={handleDonationCompleted}
+              onNavigateToTopSavers={() => setCurrentTab('top-savers')}
+            />
+          )}
 
-        {currentTab === 'top-savers' && (
-          <TopSaversView
-            topSavers={topSavers}
-            discountRewards={discountRewards}
-            currentUserStats={userStats}
-            onNavigateToRecipes={() => setCurrentTab('recipes')}
-            onNavigateToDonate={() => setCurrentTab('donate')}
-            onClaimReward={handleClaimReward}
-          />
-        )}
+          {currentTab === 'top-savers' && (
+            <TopSaversView
+              topSavers={topSavers}
+              discountRewards={discountRewards}
+              currentUserStats={userStats}
+              onNavigateToRecipes={() => setCurrentTab('recipes')}
+              onNavigateToDonate={() => setCurrentTab('donate')}
+              onClaimReward={handleClaimReward}
+            />
+          )}
 
-        {currentTab === 'account' && (
-          <AccountView
-            currentUser={currentUser}
-            onLoginSuccess={(user) => setCurrentUser(user)}
-            onLogout={() => setCurrentUser(null)}
-            inventory={inventory}
-            shoppingList={shoppingList}
-            userStats={userStats}
-            onApplySyncedData={handleApplySyncedData}
-            onNavigateToPantry={() => setCurrentTab('pantry')}
-          />
-        )}
-      </main>
+          {currentTab === 'account' && (
+            <AccountView
+              currentUser={currentUser}
+              onLoginSuccess={(user) => setCurrentUser(user)}
+              onLogout={() => setCurrentUser(null)}
+              inventory={inventory}
+              shoppingList={shoppingList}
+              userStats={userStats}
+              onApplySyncedData={handleApplySyncedData}
+              onNavigateToPantry={() => setCurrentTab('pantry')}
+              onOpenAndroidDownload={() => setIsAndroidModalOpen(true)}
+              userAllergies={userAllergies}
+              onToggleAllergy={handleToggleAllergy}
+            />
+          )}
+        </main>
 
-      {/* Mobile Ergonomic Bottom Tab Navigation */}
-      <MobileBottomNav
-        currentTab={currentTab}
-        onSelectTab={(tab) => {
-          if (tab !== 'recipes') setPreSelectedIngredient(undefined);
-          setCurrentTab(tab);
-        }}
-        inventory={inventory}
-        shoppingList={shoppingList}
-      />
+        {/* Mobile Ergonomic Bottom Tab Navigation */}
+        <MobileBottomNav
+          currentTab={currentTab}
+          onSelectTab={(tab) => {
+            if (tab !== 'recipes') setPreSelectedIngredient(undefined);
+            setCurrentTab(tab);
+          }}
+          inventory={inventory}
+          shoppingList={shoppingList}
+        />
 
-      {/* Expiry Notifications Drawer */}
-      <NotificationDrawer
-        isOpen={isNotificationOpen}
-        onClose={() => setIsNotificationOpen(false)}
-        inventory={inventory}
-        onCookItem={handleCookItemFromPantry}
-        onDonateItem={handleDonateItemFromPantry}
-      />
+        {/* Expiry Notifications Drawer */}
+        <NotificationDrawer
+          isOpen={isNotificationOpen}
+          onClose={() => setIsNotificationOpen(false)}
+          inventory={inventory}
+          onCookItem={handleCookItemFromPantry}
+          onDonateItem={handleDonateItemFromPantry}
+        />
 
-      {/* Auth & Multi-Device Cloud Sync Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        currentUser={currentUser}
-        onLoginSuccess={(user) => setCurrentUser(user)}
-        onLogout={() => setCurrentUser(null)}
-        inventory={inventory}
-        shoppingList={shoppingList}
-        userStats={userStats}
-        onApplySyncedData={handleApplySyncedData}
-      />
+        {/* Auth & Multi-Device Cloud Sync Modal */}
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          currentUser={currentUser}
+          onLoginSuccess={(user) => setCurrentUser(user)}
+          onLogout={() => setCurrentUser(null)}
+          inventory={inventory}
+          shoppingList={shoppingList}
+          userStats={userStats}
+          onApplySyncedData={handleApplySyncedData}
+        />
 
-      {/* Generative AI Custom Recipe Modal */}
-      <AiRecipeModal
-        isOpen={isAiRecipeModalOpen}
-        onClose={() => setIsAiRecipeModalOpen(false)}
-        inventory={inventory}
-        onAddCustomRecipe={handleAddCustomRecipe}
-        onAddMissingToShoppingList={handleAddMissingToShoppingList}
-        onStartCooking={(recipe) => {
-          handleMealCooked(recipe.ingredients.map(i => i.name), recipe.title);
-        }}
-      />
-    </div>
+        {/* Generative AI Custom Recipe Modal */}
+        <AiRecipeModal
+          isOpen={isAiRecipeModalOpen}
+          onClose={() => setIsAiRecipeModalOpen(false)}
+          inventory={inventory}
+          onAddCustomRecipe={handleAddCustomRecipe}
+          onAddMissingToShoppingList={handleAddMissingToShoppingList}
+          onStartCooking={(recipe) => {
+            handleMealCooked(recipe.ingredients.map(i => i.name), recipe.title);
+          }}
+          userAllergies={userAllergies}
+        />
+
+        {/* Android & GitHub Download Modal */}
+        <AndroidDownloadModal
+          isOpen={isAndroidModalOpen}
+          onClose={() => setIsAndroidModalOpen(false)}
+        />
+
+        {/* PWA Offline Mode Status Indicator */}
+        <OfflineIndicator />
+      </div>
+    </LanguageProvider>
   );
 }

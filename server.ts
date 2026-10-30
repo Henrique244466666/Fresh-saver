@@ -66,7 +66,8 @@ app.post('/api/ai/generate-custom-recipe', async (req: Request, res: Response) =
       expiringItems = [], 
       dietaryPreferences = 'Any', 
       mealType = 'Dinner',
-      maxTime = '30 minutes'
+      maxTime = '30 minutes',
+      allergies = []
     } = req.body;
 
     if (!pantryItems || pantryItems.length === 0) {
@@ -75,27 +76,32 @@ app.post('/api/ai/generate-custom-recipe', async (req: Request, res: Response) =
 
     const expiringNames = expiringItems.map((i: any) => `${i.name} (expires in ${i.daysLeft}d)`).join(', ');
     const allPantryNames = pantryItems.map((i: any) => i.name).join(', ');
+    const allergyList = Array.isArray(allergies) && allergies.length > 0 ? allergies.join(', ') : 'None';
 
     const prompt = `
 Create an inspiring, delicious, and practical zero-waste recipe based on the user's available groceries.
-PRIORITY REQUIREMENT: The recipe MUST actively prioritize using the ingredients closest to expiring!
+PRIORITY REQUIREMENT 1 (ZERO FOOD WASTE): The recipe MUST actively prioritize using the ingredients closest to expiring!
 - Urgently Expiring Ingredients (use as many as possible): ${expiringNames || 'None strictly urgent'}
 - All Available Pantry Items: ${allPantryNames}
 - Meal Type: ${mealType}
 - Maximum Prep + Cooking Time: ${maxTime}
 - Dietary Preferences: ${dietaryPreferences}
 
+CRITICAL REQUIREMENT 2 (STRICT ALLERGY SAFETY):
+The user is ALLERGIC to: ${allergyList}.
+${allergyList !== 'None' ? `DANGER: Under NO circumstances should any of these allergens (${allergyList}) or their derivatives appear in the recipe ingredients, substitutions, or garnishes! Strictly exclude them.` : ''}
+
 Rules:
-1. Make sure the recipe relies primarily on the items listed above. Standard household seasonings like salt, pepper, cooking oil, and water are acceptable.
+1. Make sure the recipe relies primarily on safe items listed above. Standard household seasonings like salt, pepper, cooking oil, and water are acceptable.
 2. Provide precise measurements, realistic prep and cook times, and clear step-by-step cooking instructions.
-3. Include an insightful "tipsForExpiringFood" field explaining how this recipe rescues the expiring produce/dairy/meat and prevents spoilage.
+3. Include an insightful "tipsForExpiringFood" field explaining how this recipe rescues the expiring produce/dairy/meat and prevents spoilage safely without triggering allergies.
 `;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.8-flash',
       contents: prompt,
       config: {
-        systemInstruction: 'You are an expert executive chef and food waste reduction scientist. You create flavorful, accessible home-cooked recipes designed specifically to rescue ingredients nearing expiration.',
+        systemInstruction: 'You are an expert executive chef and food safety scientist. You create flavorful home-cooked recipes designed to rescue ingredients nearing expiration while strictly enforcing user allergen safety.',
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
@@ -107,6 +113,11 @@ Rules:
             servings: { type: Type.NUMBER },
             caloriesPerServing: { type: Type.NUMBER },
             category: { type: Type.STRING },
+            allergens: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: 'Identified allergens in this recipe, if any.'
+            },
             tags: {
               type: Type.ARRAY,
               items: { type: Type.STRING },

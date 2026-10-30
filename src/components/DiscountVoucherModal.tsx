@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Check, Copy, Store, Calendar, ShieldCheck, Ticket } from 'lucide-react';
 import { DiscountReward } from '../types/pantry';
 import { formatHumanDate } from '../data/mockData';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface DiscountVoucherModalProps {
   reward: DiscountReward | null;
@@ -14,6 +15,7 @@ export const DiscountVoucherModal: React.FC<DiscountVoucherModalProps> = ({
   onClose,
   onMarkClaimed
 }) => {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
 
   if (!reward) return null;
@@ -41,7 +43,7 @@ export const DiscountVoucherModal: React.FC<DiscountVoucherModalProps> = ({
           <div className="flex items-center gap-2">
             <Ticket className="w-5 h-5 text-emerald-200" />
             <span className="text-xs uppercase font-bold tracking-wider text-emerald-200">
-              Top Saver Partner Voucher
+              {t('voucherTitle')}
             </span>
           </div>
           <button
@@ -71,7 +73,7 @@ export const DiscountVoucherModal: React.FC<DiscountVoucherModalProps> = ({
           {/* Barcode Presentation Box */}
           <div className="p-4 bg-stone-50 rounded-xl border border-dashed border-stone-300 text-center space-y-3">
             <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
-              Scan at Checkout or Apply Online
+              {t('voucherScanCheckout')}
             </p>
 
             {/* Simulated Clean Vector Barcode */}
@@ -88,7 +90,7 @@ export const DiscountVoucherModal: React.FC<DiscountVoucherModalProps> = ({
             {/* Promo Code Box */}
             <div className="flex items-center justify-between gap-2 p-2 bg-white rounded-lg border border-stone-200">
               <div className="text-left pl-2">
-                <span className="text-[10px] text-stone-400 block font-mono">PROMO CODE</span>
+                <span className="text-[10px] text-stone-400 block font-mono">{t('voucherPromoCode')}</span>
                 <span className="font-mono text-base font-bold text-stone-900 tracking-wider">
                   {reward.code}
                 </span>
@@ -100,12 +102,12 @@ export const DiscountVoucherModal: React.FC<DiscountVoucherModalProps> = ({
                 {copied ? (
                   <>
                     <Check className="w-3.5 h-3.5 text-white" />
-                    <span>Copied!</span>
+                    <span>{t('voucherCopied')}</span>
                   </>
                 ) : (
                   <>
                     <Copy className="w-3.5 h-3.5" />
-                    <span>Copy Code</span>
+                    <span>{t('voucherCopy')}</span>
                   </>
                 )}
               </button>
@@ -116,7 +118,7 @@ export const DiscountVoucherModal: React.FC<DiscountVoucherModalProps> = ({
           <div className="text-xs text-stone-500 space-y-2 border-t border-stone-100 pt-4">
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-stone-600">
-                <Calendar className="w-3.5 h-3.5" /> Valid Until:
+                <Calendar className="w-3.5 h-3.5" /> {t('voucherValidUntil')}:
               </span>
               <span className="font-semibold text-stone-800">
                 {formatHumanDate(reward.expiryDate)}
@@ -124,7 +126,7 @@ export const DiscountVoucherModal: React.FC<DiscountVoucherModalProps> = ({
             </div>
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-stone-600">
-                <ShieldCheck className="w-3.5 h-3.5" /> Saver Tier:
+                <ShieldCheck className="w-3.5 h-3.5" /> {t('saversCurrentTier')}:
               </span>
               <span className="font-semibold text-stone-800">
                 {reward.minTier}
@@ -139,7 +141,7 @@ export const DiscountVoucherModal: React.FC<DiscountVoucherModalProps> = ({
             onClick={onClose}
             className="w-full py-2.5 text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-xl transition-colors"
           >
-            Done
+            {t('voucherDone')}
           </button>
         </div>
       </div>

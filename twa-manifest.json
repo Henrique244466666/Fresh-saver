@@ -1,0 +1,43 @@
+{
+  "packageId": "com.freshsaver.app",
+  "host": "freshsaver.app",
+  "name": "FreshSaver - Food Expiry & Donation Tracker",
+  "launcherName": "FreshSaver",
+  "themeColor": "#059669",
+  "navigationColor": "#059669",
+  "backgroundColor": "#fafaf9",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://freshsaver.app/pwa-512x512.png",
+  "maskableIconUrl": "https://freshsaver.app/pwa-maskable-512x512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Scan Groceries",
+      "short_name": "Scan",
+      "url": "/?tab=scan",
+      "icon": "https://freshsaver.app/pwa-192x192.png"
+    },
+    {
+      "name": "Shopping List",
+      "short_name": "Shop",
+      "url": "/?tab=shopping",
+      "icon": "https://freshsaver.app/pwa-192x192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": true
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  }
+}

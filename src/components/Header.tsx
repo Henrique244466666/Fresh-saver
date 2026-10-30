@@ -1,6 +1,8 @@
 import React from 'react';
-import { Bell, Sparkles, Award, ShoppingBag, User, Cloud } from 'lucide-react';
+import { Bell, Sparkles, Award, ShoppingBag, User, Cloud, Smartphone, FileText } from 'lucide-react';
 import { PantryItem, ShoppingListItem, AuthUser } from '../types/pantry';
+import { useLanguage } from '../i18n/LanguageContext';
+import { LanguageSelector } from './LanguageSelector';
 
 interface HeaderProps {
   currentTab: 'pantry' | 'scanner' | 'recipes' | 'donate' | 'top-savers' | 'shopping-list' | 'account';
@@ -11,6 +13,7 @@ interface HeaderProps {
   onOpenNotifications: () => void;
   onOpenTopSavers: () => void;
   onOpenAuth: () => void;
+  onOpenAndroidDownload: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -21,14 +24,16 @@ export const Header: React.FC<HeaderProps> = ({
   currentUser,
   onOpenNotifications,
   onOpenTopSavers,
-  onOpenAuth
+  onOpenAuth,
+  onOpenAndroidDownload
 }) => {
+  const { t } = useLanguage();
   const expiringSoonCount = inventory.filter(item => item.daysLeft <= 3 && item.daysLeft >= 0).length;
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-stone-200 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-4 md:gap-8 h-16">
+        <div className="flex items-center justify-between gap-3 md:gap-6 h-16">
           {/* Zone 1: Single text wordmark with minimal clean identity */}
           <div className="flex items-center gap-3 shrink-0">
             <button
@@ -57,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
               }`}
             >
-              Pantry ({inventory.length})
+              {t('navPantry')} ({inventory.length})
             </button>
 
             <button
@@ -69,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Shopping List ({shoppingList.length})</span>
+              <span>{t('navShopping')} ({shoppingList.length})</span>
             </button>
 
             <button
@@ -80,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
               }`}
             >
-              Scan & Add
+              {t('navScan')}
             </button>
 
             <button
@@ -92,7 +97,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              <span>AI Recipes</span>
+              <span>{t('navRecipes')}</span>
             </button>
 
             <button
@@ -103,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
               }`}
             >
-              Donate Drop-off
+              {t('navDonate')}
             </button>
 
             <button
@@ -115,16 +120,42 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Award className="w-3.5 h-3.5 text-amber-600" />
-              <span>Top Savers (15% OFF)</span>
+              <span>{t('navTopSavers')}</span>
             </button>
           </nav>
 
-          {/* Zone 3: 1 primary action cluster */}
+          {/* Zone 3: Actions & Language Cluster */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Language Selector Dropdown */}
+            <LanguageSelector compact={true} />
+
+            {/* PDF Documentation Download */}
+            <a
+              href="/FreshSaver_App_Documentation.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              download="FreshSaver_App_Documentation.pdf"
+              className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors border border-stone-200"
+              title="Download comprehensive PDF feature guide"
+            >
+              <FileText className="w-3.5 h-3.5 text-emerald-700" />
+              <span>{t('navGuidePdf')}</span>
+            </a>
+
+            {/* Android App & GitHub Download */}
+            <button
+              onClick={onOpenAndroidDownload}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white transition-all shadow-xs"
+              title="Install Android App or compile APK from GitHub"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-emerald-100" />
+              <span>{t('navAndroid')}</span>
+            </button>
+
             {/* User Account / Sync Trigger */}
             <button
               onClick={() => onSelectTab('account')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
                 currentTab === 'account'
                   ? 'bg-stone-900 text-white border-stone-900'
                   : currentUser
@@ -135,7 +166,7 @@ export const Header: React.FC<HeaderProps> = ({
             >
               {currentUser ? <Cloud className="w-3.5 h-3.5 text-emerald-600" /> : <User className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">
-                {currentUser ? `${currentUser.name.split(' ')[0]} (Cloud Synced)` : 'Sign In / Sync'}
+                {currentUser ? `${currentUser.name.split(' ')[0]} (${t('navCloudSynced')})` : t('navSignInSync')}
               </span>
             </button>
 

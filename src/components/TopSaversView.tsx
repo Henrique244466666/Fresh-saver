@@ -14,13 +14,16 @@ import {
 } from 'lucide-react';
 import { TopSaverUser, DiscountReward, SaverTier } from '../types/pantry';
 import { DiscountVoucherModal } from './DiscountVoucherModal';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface TopSaversViewProps {
   topSavers: TopSaverUser[];
   discountRewards: DiscountReward[];
   currentUserStats: {
-    rescuedLbs: number;
-    dollarsSaved: number;
+    rescuedKg?: number;
+    eurosSaved?: number;
+    rescuedLbs?: number;
+    dollarsSaved?: number;
     itemsCooked: number;
     itemsDonated: number;
   };
@@ -37,51 +40,53 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
   onNavigateToDonate,
   onClaimReward
 }) => {
+  const { t } = useLanguage();
   const [selectedReward, setSelectedReward] = useState<DiscountReward | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [timeframe, setTimeframe] = useState<'month' | 'all-time' | 'week'>('month');
 
-  // Compute current user's dynamic values
-  const currentUser = topSavers.find(u => u.isCurrentUser) || {
-    id: 'usr-4',
-    rank: 4,
-    name: 'You (Alex Miller)',
-    avatar: 'AM',
-    tier: 'Eco Champion' as SaverTier,
-    rescuedLbs: currentUserStats.rescuedLbs,
-    dollarsSaved: currentUserStats.dollarsSaved,
-    streakDays: 19,
-    eligibleDiscount: '15% OFF',
-    badge: '🌟 Zero Waste Chef'
-  };
+  // Compute current user's dynamic values in kg and euros
+  const currentKg = currentUserStats.rescuedKg ?? (currentUserStats.rescuedLbs ? currentUserStats.rescuedLbs * 0.453592 : 0);
+  const currentEuros = currentUserStats.eurosSaved ?? (currentUserStats.dollarsSaved ? currentUserStats.dollarsSaved * 0.92 : 0);
 
-  const currentLbs = currentUserStats.rescuedLbs;
+  const currentUser = topSavers.find(u => u.isCurrentUser) || {
+    id: 'usr-user',
+    rank: 9,
+    name: 'You',
+    avatar: 'ME',
+    tier: 'Rising Saver' as SaverTier,
+    rescuedKg: currentKg,
+    eurosSaved: currentEuros,
+    streakDays: 0,
+    eligibleDiscount: '5% OFF',
+    badge: '🌱 Fresh Starter'
+  };
   
-  // Calculate tier dynamically
+  // Calculate tier dynamically in kg
   let calculatedTier: SaverTier = 'Rising Saver';
   let nextTierName = 'Conscious Consumer (10% OFF)';
-  let nextTierLbs = 15;
+  let nextTierKg = 7;
   let activeDiscountLabel = '5% OFF';
 
-  if (currentLbs >= 45) {
+  if (currentKg >= 20) {
     calculatedTier = 'Master Saver';
     nextTierName = 'Max Tier Achieved!';
-    nextTierLbs = 45;
+    nextTierKg = 20;
     activeDiscountLabel = '25% OFF';
-  } else if (currentLbs >= 25) {
+  } else if (currentKg >= 12) {
     calculatedTier = 'Eco Champion';
     nextTierName = 'Master Saver (25% OFF)';
-    nextTierLbs = 45;
+    nextTierKg = 20;
     activeDiscountLabel = '15% OFF';
-  } else if (currentLbs >= 15) {
+  } else if (currentKg >= 7) {
     calculatedTier = 'Conscious Consumer';
     nextTierName = 'Eco Champion (15% OFF)';
-    nextTierLbs = 25;
+    nextTierKg = 12;
     activeDiscountLabel = '10% OFF';
   }
 
-  const progressPercent = Math.min(100, Math.round((currentLbs / nextTierLbs) * 100));
-  const lbsRemaining = Math.max(0, Number((nextTierLbs - currentLbs).toFixed(1)));
+  const progressPercent = Math.min(100, Math.round((currentKg / nextTierKg) * 100));
+  const kgRemaining = Math.max(0, Number((nextTierKg - currentKg).toFixed(1)));
 
   // Filter rewards
   const categories = ['all', 'Produce & Groceries', 'Organic Markets', 'Bakery & Deli', 'Local Delivery'];
@@ -97,13 +102,13 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-900/60 text-emerald-200 text-xs font-semibold mb-3 border border-emerald-600/40">
             <Award className="w-3.5 h-3.5 text-emerald-300" />
-            <span>Community Food Waste Rewards Program</span>
+            <span>{t('saversTitle')}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-            Top Savers Get Exclusive Grocery Discounts
+            {t('saversTitle')}
           </h1>
           <p className="mt-2 text-sm sm:text-base text-emerald-100 leading-relaxed">
-            The more food you rescue from spoiling, the higher your saver tier. Save money on your monthly bills and unlock up to 25% OFF at participating grocers and organic markets.
+            {t('saversSubtitle')}
           </p>
         </div>
       </div>
@@ -123,11 +128,11 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
                 </span>
                 <span className="text-xs font-medium text-stone-500 flex items-center gap-1">
                   <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />
-                  {currentUser.streakDays} day streak
+                  {currentUser.streakDays} {t('streakDays')}
                 </span>
               </div>
               <p className="text-xs text-stone-500 mt-1">
-                Active Reward Level: <strong className="text-emerald-700 font-bold">{activeDiscountLabel} Storewide</strong> · Total Rescued: <span className="font-mono font-bold text-stone-800">{currentLbs.toFixed(1)} lbs</span>
+                {t('saversCurrentTier')}: <strong className="text-emerald-700 font-bold">{activeDiscountLabel}</strong> · {t('statRescuedKg')}: <span className="font-mono font-bold text-stone-800">{currentKg.toFixed(1)} kg</span>
               </p>
             </div>
           </div>
@@ -135,19 +140,19 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => {
-                const eligible = discountRewards.find(r => currentLbs >= r.minLbsRequired);
+                const eligible = discountRewards.find(r => currentKg >= (r.minKgRequired ?? r.minLbsRequired ?? 10));
                 if (eligible) setSelectedReward(eligible);
               }}
               className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
             >
               <Sparkles className="w-4 h-4 text-emerald-200" />
-              <span>Claim Active Discounts</span>
+              <span>{t('saversClaimDiscountBtn')}</span>
             </button>
             <button
               onClick={onNavigateToRecipes}
               className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold rounded-xl transition-colors"
             >
-              Rescue Food in Recipes
+              {t('recipesCookMealBtn')}
             </button>
           </div>
         </div>
@@ -156,10 +161,10 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
         <div className="mt-6 pt-5 border-t border-stone-100">
           <div className="flex items-center justify-between text-xs mb-2">
             <span className="text-stone-600">
-              Next Tier: <strong className="text-stone-900">{nextTierName}</strong>
+              {t('saversNextTier')}: <strong className="text-stone-900">{nextTierName}</strong>
             </span>
             <span className="text-stone-500 font-mono">
-              {currentLbs.toFixed(1)} / {nextTierLbs} lbs {lbsRemaining > 0 ? `(${lbsRemaining} lbs to unlock)` : '(Unlocked!)'}
+              {currentKg.toFixed(1)} / {nextTierKg} kg {kgRemaining > 0 ? t('saversKgToUnlock').replace('{kg}', kgRemaining.toString()) : t('saversUnlockedStatus')}
             </span>
           </div>
           <div className="w-full h-3 bg-stone-100 rounded-full overflow-hidden p-0.5">
@@ -170,9 +175,9 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
           </div>
           <div className="flex justify-between items-center text-[11px] text-stone-400 mt-2">
             <span>Rising (5%)</span>
-            <span>Conscious (10% - 15 lbs)</span>
-            <span>Eco Champion (15% - 25 lbs)</span>
-            <span>Master Saver (25% - 45 lbs)</span>
+            <span>Conscious (10% - 7 kg)</span>
+            <span>Eco Champion (15% - 12 kg)</span>
+            <span>Master Saver (25% - 20 kg)</span>
           </div>
         </div>
       </div>
@@ -181,9 +186,9 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-bold text-stone-900">Partner Grocery Discounts</h2>
+            <h2 className="text-xl font-bold text-stone-900">{t('saversDiscountsTitle')}</h2>
             <p className="text-xs text-stone-500">
-              Discounts unlock automatically as your food rescue weight grows.
+              {t('saversSubtitle')}
             </p>
           </div>
 
@@ -199,7 +204,7 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
                     : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                 }`}
               >
-                {cat === 'all' ? 'All Partners' : cat}
+                {cat === 'all' ? t('saversAllPartners') : cat}
               </button>
             ))}
           </div>
@@ -208,10 +213,11 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
         {/* Rewards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredRewards.map(reward => {
-            const isUnlocked = currentLbs >= reward.minLbsRequired;
+            const minKg = reward.minKgRequired ?? (reward.minLbsRequired ? reward.minLbsRequired * 0.453592 : 10);
+            const isUnlocked = currentKg >= minKg;
 
             return (
-              <div 
+              <div
                 key={reward.id}
                 className={`bg-white rounded-2xl p-5 border transition-all flex flex-col justify-between ${
                   isUnlocked 
@@ -227,11 +233,11 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
                     </div>
                     {isUnlocked ? (
                       <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                        Unlocked
+                        {t('saversUnlocked')}
                       </span>
                     ) : (
                       <span className="text-[10px] font-semibold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <Lock className="w-3 h-3" /> {reward.minLbsRequired} lbs req.
+                        <Lock className="w-3 h-3" /> {t('saversKgReq').replace('{kg}', minKg.toFixed(0))}
                       </span>
                     )}
                   </div>
@@ -246,7 +252,7 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-stone-100 text-[11px] text-stone-400">
-                    <span>Tier Required: <strong>{reward.minTier}</strong></span>
+                    <span>{t('saversTierRequired')}: <strong>{reward.minTier}</strong></span>
                   </div>
                 </div>
 
@@ -257,7 +263,7 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
                       className="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-xs"
                     >
                       <ShoppingBag className="w-3.5 h-3.5" />
-                      <span>View Voucher & Barcode</span>
+                      <span>{t('saversViewVoucher')}</span>
                     </button>
                   ) : (
                     <button
@@ -265,7 +271,7 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
                       className="w-full py-2.5 px-4 bg-stone-100 text-stone-400 text-xs font-medium rounded-xl cursor-not-allowed flex items-center justify-center gap-1.5"
                     >
                       <Lock className="w-3.5 h-3.5" />
-                      <span>Save {(reward.minLbsRequired - currentLbs).toFixed(1)} more lbs</span>
+                      <span>{t('saversSaveMoreKg').replace('{kg}', Math.max(0, minKg - currentKg).toFixed(1))}</span>
                     </button>
                   )}
                 </div>
@@ -279,9 +285,9 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
       <div className="bg-white rounded-2xl p-6 border border-stone-200 shadow-xs space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-bold text-stone-900">Community Top Savers</h2>
+            <h2 className="text-xl font-bold text-stone-900">{t('saversLeaderboardTitle')}</h2>
             <p className="text-xs text-stone-500">
-              Rankings based on verifiable food waste diverted from landfills.
+              {t('saversSubtitle')}
             </p>
           </div>
 
@@ -293,7 +299,7 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
                 timeframe === 'month' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600'
               }`}
             >
-              This Month
+              {t('saversTimeThisMonth')}
             </button>
             <button
               onClick={() => setTimeframe('week')}
@@ -301,7 +307,7 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
                 timeframe === 'week' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600'
               }`}
             >
-              This Week
+              {t('saversTimeThisWeek')}
             </button>
             <button
               onClick={() => setTimeframe('all-time')}
@@ -309,7 +315,7 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
                 timeframe === 'all-time' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600'
               }`}
             >
-              All Time
+              {t('saversTimeAllTime')}
             </button>
           </div>
         </div>
@@ -319,12 +325,12 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-stone-100 text-xs font-semibold text-stone-400">
-                <th className="py-3 px-3">Rank</th>
-                <th className="py-3 px-3">Saver</th>
-                <th className="py-3 px-3">Tier Status</th>
-                <th className="py-3 px-3 text-right">Food Rescued</th>
-                <th className="py-3 px-3 text-right">Value Saved</th>
-                <th className="py-3 px-3 text-right">Discount Earned</th>
+                <th className="py-3 px-3">{t('saversRankCol')}</th>
+                <th className="py-3 px-3">{t('saversSaverCol')}</th>
+                <th className="py-3 px-3">{t('saversTierCol')}</th>
+                <th className="py-3 px-3 text-right">{t('saversRescuedCol')}</th>
+                <th className="py-3 px-3 text-right">{t('saversSavedCol')}</th>
+                <th className="py-3 px-3 text-right">{t('saversDiscountCol')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
@@ -362,7 +368,7 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
                             <span>{user.name}</span>
                             {isUser && (
                               <span className="text-[10px] bg-emerald-700 text-white px-1.5 py-0.2 rounded-xs">
-                                YOU
+                                {t('saversYouBadge')}
                               </span>
                             )}
                           </div>
@@ -384,10 +390,10 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
                       </span>
                     </td>
                     <td className="py-3.5 px-3 text-right font-mono text-xs tabular-nums text-stone-900">
-                      {user.rescuedLbs.toFixed(1)} lbs
+                      {(user.rescuedKg ?? (user.rescuedLbs ? user.rescuedLbs * 0.453592 : 0)).toFixed(1)} kg
                     </td>
                     <td className="py-3.5 px-3 text-right font-mono text-xs tabular-nums text-emerald-700">
-                      ${user.dollarsSaved.toFixed(2)}
+                      €{(user.eurosSaved ?? (user.dollarsSaved ? user.dollarsSaved * 0.92 : 0)).toFixed(2)}
                     </td>
                     <td className="py-3.5 px-3 text-right text-xs">
                       <span className="font-bold text-emerald-800 bg-emerald-100/60 px-2 py-0.5 rounded-md">
@@ -407,26 +413,26 @@ export const TopSaversView: React.FC<TopSaversViewProps> = ({
         <div className="flex items-center gap-2">
           <Info className="w-5 h-5 text-emerald-700" />
           <h3 className="text-sm font-bold text-stone-900">
-            How The FreshSaver Grocery Discount Program Works
+            {t('saversHowItWorksTitle')}
           </h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-stone-600">
           <div className="p-4 bg-white rounded-xl border border-stone-200 space-y-1.5">
-            <div className="font-bold text-stone-900">1. Scan & Track</div>
+            <div className="font-bold text-stone-900">{t('saversStep1Title')}</div>
             <p className="leading-relaxed">
-              Scan your grocery receipts or barcodes when you shop. FreshSaver logs your shelf-life and monitors expiry windows.
+              {t('saversStep1Desc')}
             </p>
           </div>
           <div className="p-4 bg-white rounded-xl border border-stone-200 space-y-1.5">
-            <div className="font-bold text-stone-900">2. Cook or Donate</div>
+            <div className="font-bold text-stone-900">{t('saversStep2Title')}</div>
             <p className="leading-relaxed">
-              Use suggested recipes to cook items expiring within 3 days, or drop off excess unopened food at verified community fridges.
+              {t('saversStep2Desc')}
             </p>
           </div>
           <div className="p-4 bg-white rounded-xl border border-stone-200 space-y-1.5">
-            <div className="font-bold text-stone-900">3. Unlock Store Discounts</div>
+            <div className="font-bold text-stone-900">{t('saversStep3Title')}</div>
             <p className="leading-relaxed">
-              Every pound diverted counts toward your saver tier. Redeem real partner grocery vouchers for up to 25% OFF your next checkout.
+              {t('saversStep3Desc')}
             </p>
           </div>
         </div>

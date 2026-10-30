@@ -12,7 +12,9 @@ import {
   Flame,
   Check
 } from 'lucide-react';
-import { PantryItem, Recipe } from '../types/pantry';
+import { PantryItem, Recipe, AllergyId } from '../types/pantry';
+import { COMMON_ALLERGIES } from '../utils/allergyUtils';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface AiRecipeModalProps {
   isOpen: boolean;
@@ -21,6 +23,7 @@ interface AiRecipeModalProps {
   onAddCustomRecipe: (recipe: Recipe) => void;
   onAddMissingToShoppingList: (ingredients: { name: string; amount: string }[], recipeTitle: string) => void;
   onStartCooking: (recipe: Recipe) => void;
+  userAllergies?: AllergyId[];
 }
 
 export const AiRecipeModal: React.FC<AiRecipeModalProps> = ({
@@ -29,8 +32,10 @@ export const AiRecipeModal: React.FC<AiRecipeModalProps> = ({
   inventory,
   onAddCustomRecipe,
   onAddMissingToShoppingList,
-  onStartCooking
+  onStartCooking,
+  userAllergies = []
 }) => {
+  const { t } = useLanguage();
   const [mealType, setMealType] = useState('Dinner');
   const [maxTime, setMaxTime] = useState('25 minutes');
   const [dietary, setDietary] = useState('Any');
@@ -47,6 +52,10 @@ export const AiRecipeModal: React.FC<AiRecipeModalProps> = ({
     .filter(i => i.daysLeft <= 3 && i.daysLeft >= 0)
     .sort((a, b) => a.daysLeft - b.daysLeft);
 
+  const activeAllergyLabels = COMMON_ALLERGIES
+    .filter(a => userAllergies.includes(a.id))
+    .map(a => `${a.icon} ${a.label}`);
+
   const handleGenerateRecipe = async () => {
     setIsLoading(true);
     setErrorMessage(null);
@@ -61,7 +70,8 @@ export const AiRecipeModal: React.FC<AiRecipeModalProps> = ({
           expiringItems: expiringItems.map(i => ({ name: i.name, daysLeft: i.daysLeft })),
           dietaryPreferences: dietary,
           mealType,
-          maxTime
+          maxTime,
+          allergies: userAllergies
         })
       });
 
@@ -114,10 +124,10 @@ export const AiRecipeModal: React.FC<AiRecipeModalProps> = ({
                 Powered by Gemini 3.8 Flash
               </span>
               <h3 className="text-xl font-extrabold text-white">
-                AI Zero-Waste Chef
+                {t('aiChefTitle')}
               </h3>
               <p className="text-xs text-stone-300">
-                Creates custom gourmet recipes specifically prioritizing your closest-to-expiring groceries.
+                {t('aiChefSubtitle')}
               </p>
             </div>
           </div>
@@ -151,7 +161,7 @@ export const AiRecipeModal: React.FC<AiRecipeModalProps> = ({
               <div className="p-4 bg-amber-50/80 rounded-2xl border border-amber-200 space-y-2">
                 <div className="flex items-center gap-2 text-xs font-bold text-amber-950">
                   <AlertCircle className="w-4 h-4 text-amber-700" />
-                  <span>Targeting Ingredients Closest to Expiring:</span>
+                  <span>{t('aiChefTargeting')}</span>
                 </div>
                 {expiringItems.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5 pt-1">
@@ -171,10 +181,25 @@ export const AiRecipeModal: React.FC<AiRecipeModalProps> = ({
                 )}
               </div>
 
+              {/* Active Allergy Safety Banner */}
+              {activeAllergyLabels.length > 0 && (
+                <div className="p-3 bg-emerald-50/90 rounded-2xl border border-emerald-200 text-xs flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🛡️</span>
+                    <span className="font-semibold text-emerald-950">
+                      Allergy Safety Filter Active: Strict exclusion of {activeAllergyLabels.join(', ')}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                    Protected
+                  </span>
+                </div>
+              )}
+
               {/* Preferences Configuration */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div>
-                  <label className="block text-stone-700 font-bold mb-1">Meal Type</label>
+                  <label className="block text-stone-700 font-bold mb-1">{t('aiChefMealType')}</label>
                   <select
                     value={mealType}
                     onChange={(e) => setMealType(e.target.value)}
@@ -188,20 +213,20 @@ export const AiRecipeModal: React.FC<AiRecipeModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-stone-700 font-bold mb-1">Max Cooking Time</label>
+                  <label className="block text-stone-700 font-bold mb-1">{t('aiChefMaxTime')}</label>
                   <select
                     value={maxTime}
                     onChange={(e) => setMaxTime(e.target.value)}
                     className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-emerald-600"
                   >
-                    <option value="15 minutes">Under 15 mins (Speedy)</option>
-                    <option value="25 minutes">Under 25 mins (Standard)</option>
-                    <option value="45 minutes">Under 45 mins (Comfort)</option>
+                    <option value="15 minutes">&lt; 15 mins</option>
+                    <option value="25 minutes">&lt; 25 mins</option>
+                    <option value="45 minutes">&lt; 45 mins</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-stone-700 font-bold mb-1">Dietary Focus</label>
+                  <label className="block text-stone-700 font-bold mb-1">{t('aiChefDietary')}</label>
                   <select
                     value={dietary}
                     onChange={(e) => setDietary(e.target.value)}
@@ -225,12 +250,12 @@ export const AiRecipeModal: React.FC<AiRecipeModalProps> = ({
                 {isLoading ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Gemini AI is crafting your recipe...</span>
+                    <span>{t('aiChefCrafting')}</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 text-emerald-200" />
-                    <span>Generate Custom Recipe to Rescue Food</span>
+                    <span>{t('aiChefGenerateBtn')}</span>
                   </>
                 )}
               </button>
@@ -276,7 +301,7 @@ export const AiRecipeModal: React.FC<AiRecipeModalProps> = ({
               {/* Ingredients */}
               <div>
                 <h4 className="text-xs font-bold text-stone-900 uppercase tracking-wider mb-2">
-                  Ingredients List
+                  {t('aiChefIngredients')}
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   {generatedRecipe.ingredients.map(ing => {
@@ -295,10 +320,10 @@ export const AiRecipeModal: React.FC<AiRecipeModalProps> = ({
                         <span className="font-medium">{ing.name} ({ing.amount})</span>
                         {match ? (
                           <span className="text-[10px] font-semibold text-emerald-800 flex items-center gap-0.5">
-                            <Check className="w-3 h-3 text-emerald-600" /> In Pantry
+                            <Check className="w-3 h-3 text-emerald-600" /> {t('aiChefInPantry')}
                           </span>
                         ) : (
-                          <span className="text-[10px] text-stone-400">Pantry staple</span>
+                          <span className="text-[10px] text-stone-400">{t('aiChefPantryStaple')}</span>
                         )}
                       </div>
                     );
@@ -309,7 +334,7 @@ export const AiRecipeModal: React.FC<AiRecipeModalProps> = ({
               {/* Instructions */}
               <div>
                 <h4 className="text-xs font-bold text-stone-900 uppercase tracking-wider mb-2">
-                  Cooking Instructions
+                  {t('aiChefInstructions')}
                 </h4>
                 <ol className="space-y-2.5">
                   {generatedRecipe.instructions.map((step, idx) => (
@@ -333,7 +358,7 @@ export const AiRecipeModal: React.FC<AiRecipeModalProps> = ({
                   className="w-full sm:flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
                 >
                   <Utensils className="w-3.5 h-3.5" />
-                  <span>Cook This Recipe Now</span>
+                  <span>{t('aiChefCookNow')}</span>
                 </button>
 
                 <button
@@ -341,14 +366,14 @@ export const AiRecipeModal: React.FC<AiRecipeModalProps> = ({
                   className="w-full sm:w-auto px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5"
                 >
                   <ShoppingBag className="w-3.5 h-3.5 text-stone-600" />
-                  <span>Add Missing to Shopping List</span>
+                  <span>{t('aiChefAddMissing')}</span>
                 </button>
 
                 <button
                   onClick={() => setGeneratedRecipe(null)}
                   className="w-full sm:w-auto px-3 py-2.5 bg-white border border-stone-200 text-stone-600 hover:bg-stone-50 font-semibold text-xs rounded-xl transition-colors"
                 >
-                  Regenerate
+                  {t('aiChefRegenerate')}
                 </button>
               </div>
             </div>

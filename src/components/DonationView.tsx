@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { DonationCenter, PantryItem } from '../types/pantry';
 import { DONATION_CENTERS } from '../data/mockData';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface DonationViewProps {
   inventory: PantryItem[];
@@ -32,6 +33,7 @@ export const DonationView: React.FC<DonationViewProps> = ({
   onDonationCompleted,
   onNavigateToTopSavers
 }) => {
+  const { t } = useLanguage();
   const [selectedCenter, setSelectedCenter] = useState<DonationCenter | null>(DONATION_CENTERS[0]);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showDirectionsModal, setShowDirectionsModal] = useState<boolean>(false);
@@ -85,10 +87,10 @@ export const DonationView: React.FC<DonationViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-900">
-            Local Food Donation Drop-Offs
+            {t('donateTitle')}
           </h1>
           <p className="text-sm text-stone-600 mt-1">
-            Don't let unopened food go to waste. Drop off surplus produce, bakery, and pantry items at nearby community fridges and food banks.
+            {t('donateSubtitle')}
           </p>
         </div>
 
@@ -97,7 +99,7 @@ export const DonationView: React.FC<DonationViewProps> = ({
           className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center gap-2 self-start sm:self-center shrink-0"
         >
           <HeartHandshake className="w-4 h-4" />
-          <span>Log a Food Donation</span>
+          <span>{t('donateLogBtn')}</span>
         </button>
       </div>
 
@@ -289,7 +291,7 @@ export const DonationView: React.FC<DonationViewProps> = ({
                   <div className="mt-4 pt-3 border-t border-stone-100 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
                       <div className="font-semibold text-emerald-900 flex items-center gap-1 mb-1">
-                        <Check className="w-3.5 h-3.5 text-emerald-600" /> Accepts:
+                        <Check className="w-3.5 h-3.5 text-emerald-600" /> {t('donateAcceptedTitle')}:
                       </div>
                       <ul className="text-stone-600 space-y-0.5 text-[11px]">
                         {center.accepts.map((acc, i) => (
@@ -300,7 +302,7 @@ export const DonationView: React.FC<DonationViewProps> = ({
 
                     <div>
                       <div className="font-semibold text-stone-700 flex items-center gap-1 mb-1">
-                        <X className="w-3.5 h-3.5 text-stone-400" /> Cannot Accept:
+                        <X className="w-3.5 h-3.5 text-stone-400" /> {t('donateCannotAcceptTitle')}:
                       </div>
                       <ul className="text-stone-500 space-y-0.5 text-[11px]">
                         {center.cannotAccept.map((rej, i) => (
@@ -456,7 +458,7 @@ export const DonationView: React.FC<DonationViewProps> = ({
                             </div>
                           </div>
                           <span className="text-stone-600 font-mono">
-                            {item.weightLbs} lbs (${item.estimatedPrice.toFixed(2)})
+                            {(item.weightKg ?? 0.4).toFixed(1)} kg (€{item.estimatedPrice.toFixed(2)})
                           </span>
                         </div>
                       );
@@ -480,7 +482,7 @@ export const DonationView: React.FC<DonationViewProps> = ({
                 onClick={() => setIsLogDonationModalOpen(false)}
                 className="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl"
               >
-                Cancel
+                {t('actionCancel')}
               </button>
               <button
                 disabled={selectedPantryItemIds.length === 0}
@@ -488,7 +490,7 @@ export const DonationView: React.FC<DonationViewProps> = ({
                 className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center gap-1.5"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Record Drop-off & Update Rank</span>
+                <span>{t('donateConfirmDropOff')}</span>
               </button>
             </div>
           </div>

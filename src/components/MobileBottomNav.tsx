@@ -1,4 +1,3 @@
-import React from 'react';
 import { 
   Package, 
   Barcode, 
@@ -8,6 +7,7 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import { PantryItem, ShoppingListItem } from '../types/pantry';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface MobileBottomNavProps {
   currentTab: 'pantry' | 'scanner' | 'recipes' | 'donate' | 'top-savers' | 'shopping-list' | 'account';
@@ -22,6 +22,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   inventory,
   shoppingList
 }) => {
+  const { t } = useLanguage();
   const expiringSoonCount = inventory.filter(item => item.daysLeft <= 3 && item.daysLeft >= 0).length;
 
   return (
@@ -36,7 +37,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           aria-label="Pantry Tab"
         >
           <Package className="w-4 h-4" />
-          <span className="text-[9px] tracking-tight mt-1">Pantry</span>
+          <span className="text-[9px] tracking-tight mt-1 truncate max-w-full px-0.5">{t('navPantry')}</span>
           {expiringSoonCount > 0 && (
             <span className="absolute top-1 right-2 w-2 h-2 bg-red-600 rounded-full ring-2 ring-white" />
           )}
@@ -51,7 +52,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           aria-label="Shopping List Tab"
         >
           <ShoppingBag className="w-4 h-4" />
-          <span className="text-[9px] tracking-tight mt-1">Shopping</span>
+          <span className="text-[9px] tracking-tight mt-1 truncate max-w-full px-0.5">{t('navShopping')}</span>
           {shoppingList.length > 0 && (
             <span className="absolute top-1 right-2 min-w-[14px] h-[14px] px-0.5 bg-emerald-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
               {shoppingList.length}
@@ -70,10 +71,10 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           }`}>
             <Barcode className="w-5 h-5" />
           </div>
-          <span className={`text-[9px] tracking-tight mt-1 ${
+          <span className={`text-[9px] tracking-tight mt-1 truncate max-w-full px-0.5 ${
             currentTab === 'scanner' ? 'text-stone-900 font-bold' : 'text-stone-500'
           }`}>
-            Scan
+            {t('navScan')}
           </span>
         </button>
 
@@ -86,7 +87,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           aria-label="Recipes Tab"
         >
           <Utensils className="w-4 h-4" />
-          <span className="text-[9px] tracking-tight mt-1">Recipes</span>
+          <span className="text-[9px] tracking-tight mt-1 truncate max-w-full px-0.5">{t('navRecipes')}</span>
         </button>
 
         {/* Donate */}
@@ -98,7 +99,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           aria-label="Donate Tab"
         >
           <HeartHandshake className="w-4 h-4" />
-          <span className="text-[9px] tracking-tight mt-1">Donate</span>
+          <span className="text-[9px] tracking-tight mt-1 truncate max-w-full px-0.5">{t('navDonate')}</span>
         </button>
 
         {/* Top Savers */}
@@ -110,7 +111,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           aria-label="Top Savers Tab"
         >
           <Award className="w-4 h-4" />
-          <span className="text-[9px] tracking-tight mt-1">Rewards</span>
+          <span className="text-[9px] tracking-tight mt-1 truncate max-w-full px-0.5">{t('navTopSavers')}</span>
         </button>
       </div>
     </nav>

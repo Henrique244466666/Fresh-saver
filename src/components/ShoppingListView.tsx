@@ -10,10 +10,13 @@ import {
   Sparkles, 
   Calendar,
   X,
-  Info
+  Info,
+  ShieldAlert
 } from 'lucide-react';
-import { ShoppingListItem, PantryItem, FoodCategory, StorageLocation } from '../types/pantry';
+import { ShoppingListItem, PantryItem, FoodCategory, StorageLocation, AllergyId } from '../types/pantry';
 import { SHELF_LIFE_DATABASE, getOffsetDateString, formatHumanDate } from '../data/mockData';
+import { getItemConflictingAllergies } from '../utils/allergyUtils';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface ShoppingListViewProps {
   shoppingList: ShoppingListItem[];
@@ -22,6 +25,7 @@ interface ShoppingListViewProps {
   onDeleteShoppingItem: (id: string) => void;
   onConvertBoughtToPantry: (boughtItems: ShoppingListItem[]) => void;
   onNavigateToPantry: () => void;
+  userAllergies?: AllergyId[];
 }
 
 export const ShoppingListView: React.FC<ShoppingListViewProps> = ({
@@ -30,8 +34,10 @@ export const ShoppingListView: React.FC<ShoppingListViewProps> = ({
   onToggleCheckItem,
   onDeleteShoppingItem,
   onConvertBoughtToPantry,
-  onNavigateToPantry
+  onNavigateToPantry,
+  userAllergies = []
 }) => {
+  const { t } = useLanguage();
   const [itemName, setItemName] = useState('');
   const [category, setCategory] = useState<FoodCategory>('Produce');
   const [quantity, setQuantity] = useState('1 unit');
@@ -108,10 +114,10 @@ export const ShoppingListView: React.FC<ShoppingListViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-900">
-            Smart Grocery Shopping List
+            {t('shopTitle')}
           </h1>
           <p className="text-sm text-stone-600 mt-1">
-            Check off items as you buy them in the aisle, then turn them directly into pantry products with active shelf-life tracking.
+            {t('shopSubtitle')}
           </p>
         </div>
 
@@ -121,53 +127,52 @@ export const ShoppingListView: React.FC<ShoppingListViewProps> = ({
             className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 self-start sm:self-center shrink-0 animate-pulse"
           >
             <Package className="w-4 h-4" />
-            <span>Turn {checkedItems.length} Bought Items into Pantry</span>
+            <span>{t('shopConvertToPantryBtn').replace('{count}', checkedItems.length.toString())}</span>
           </button>
         )}
       </div>
 
       {/* Quick Add Form */}
       <div className="bg-white rounded-2xl p-5 border border-stone-200 shadow-xs space-y-4">
-        <h3 className="text-sm font-bold text-stone-900">Add Items to Shopping List</h3>
+        <h3 className="text-sm font-bold text-stone-900">{t('shopAddBtn')}</h3>
 
         <form onSubmit={handleAddItem} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
             <div className="sm:col-span-6">
               <label className="block text-xs font-semibold text-stone-600 mb-1">
-                Item Name
+                {t('scanManualName')}
               </label>
               <input
                 type="text"
                 required
                 value={itemName}
                 onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="e.g. Fresh Strawberries, Greek Yogurt, Olive Oil..."
+                placeholder={t('shopAddItemPlaceholder')}
                 className="w-full px-3 py-2 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-emerald-600"
               />
             </div>
 
             <div className="sm:col-span-3">
               <label className="block text-xs font-semibold text-stone-600 mb-1">
-                Category
+                {t('actionSortCategory')}
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as FoodCategory)}
                 className="w-full px-3 py-2 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-emerald-600"
               >
-                <option value="Produce">Produce</option>
-                <option value="Dairy & Eggs">Dairy & Eggs</option>
-                <option value="Meat & Seafood">Meat & Seafood</option>
-                <option value="Bakery">Bakery</option>
-                <option value="Pantry & Dry Goods">Pantry & Dry Goods</option>
-                <option value="Beverages">Beverages</option>
-                <option value="Frozen">Frozen</option>
+                <option value="Produce">{t('catProduce')}</option>
+                <option value="Dairy & Eggs">{t('catDairy')}</option>
+                <option value="Meat & Seafood">{t('catMeat')}</option>
+                <option value="Bakery">{t('catBakery')}</option>
+                <option value="Pantry & Dry Goods">{t('catPantry')}</option>
+                <option value="Frozen">{t('catFrozen')}</option>
               </select>
             </div>
 
             <div className="sm:col-span-3">
               <label className="block text-xs font-semibold text-stone-600 mb-1">
-                Quantity
+                {t('scanManualQty')}
               </label>
               <input
                 type="text"
@@ -181,9 +186,9 @@ export const ShoppingListView: React.FC<ShoppingListViewProps> = ({
 
           <div className="flex items-center justify-between gap-3 pt-1">
             <div className="text-[11px] text-stone-500 flex items-center gap-2">
-              <span>Auto-shelf life: <strong>{shelfLifeDays} days</strong></span>
+              <span>{t('scanManualExpiryDays')}: <strong>{shelfLifeDays} {t('statusDaysLeft')}</strong></span>
               <span>·</span>
-              <span>Location: <strong>{location}</strong></span>
+              <span>{t('locPantry')}: <strong>{location}</strong></span>
             </div>
 
             <button
@@ -191,7 +196,7 @@ export const ShoppingListView: React.FC<ShoppingListViewProps> = ({
               className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Add to List</span>
+              <span>{t('shopAddBtn')}</span>
             </button>
           </div>
         </form>
@@ -204,12 +209,12 @@ export const ShoppingListView: React.FC<ShoppingListViewProps> = ({
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-4 h-4 text-emerald-700" />
             <span className="font-bold text-stone-900">
-              Shopping Cart ({checkedItems.length}/{shoppingList.length} picked up)
+              {t('navShopping')} ({checkedItems.length}/{shoppingList.length})
             </span>
           </div>
 
           <div className="text-stone-500 font-mono">
-            Est. total: <strong className="text-stone-800">${estimatedTotal.toFixed(2)}</strong>
+            {t('shopEstimatedTotal')}: <strong className="text-stone-800">€{estimatedTotal.toFixed(2)}</strong>
           </div>
         </div>
 
@@ -218,58 +223,67 @@ export const ShoppingListView: React.FC<ShoppingListViewProps> = ({
             <div className="w-10 h-10 rounded-xl bg-stone-100 text-stone-400 mx-auto flex items-center justify-center">
               <ShoppingBag className="w-5 h-5" />
             </div>
-            <h4 className="text-sm font-semibold text-stone-800">Your shopping list is empty</h4>
+            <h4 className="text-sm font-semibold text-stone-800">{t('shopEmptyTitle')}</h4>
             <p className="text-xs text-stone-500 max-w-sm mx-auto">
-              Add items you plan to buy, or click "Add Missing Ingredients" from any recipe. Once you buy them, tap "Turn into Pantry" to auto-start expiry tracking!
+              {t('shopEmptyDesc')}
             </p>
           </div>
         ) : (
           <div className="divide-y divide-stone-100">
             {/* Unchecked Items (Need to Buy) */}
-            {uncheckedItems.map(item => (
-              <div
-                key={item.id}
-                onClick={() => onToggleCheckItem(item.id)}
-                className="p-4 flex items-center justify-between gap-3 hover:bg-stone-50/70 transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-md border-2 border-stone-300 group-hover:border-emerald-500 flex items-center justify-center transition-colors bg-white">
-                    {/* Empty box */}
-                  </div>
-                  <div>
-                    <span className="text-sm font-bold text-stone-900">{item.name}</span>
-                    <div className="text-xs text-stone-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                      <span>{item.category}</span>
-                      <span>·</span>
-                      <span>{item.quantity}</span>
-                      <span>·</span>
-                      <span>Est. shelf life: {item.defaultShelfLifeDays} days</span>
-                      {item.sourceRecipe && (
-                        <>
-                          <span>·</span>
-                          <span className="text-emerald-700 font-medium">For {item.sourceRecipe}</span>
-                        </>
+            {uncheckedItems.map(item => {
+              const itemConflicts = getItemConflictingAllergies(item.allergens, item.name, userAllergies);
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => onToggleCheckItem(item.id)}
+                  className="p-4 flex items-center justify-between gap-3 hover:bg-stone-50/70 transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-md border-2 border-stone-300 group-hover:border-emerald-500 flex items-center justify-center transition-colors bg-white">
+                      {/* Empty box */}
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-stone-900">{item.name}</span>
+                      <div className="text-xs text-stone-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        <span>{item.category}</span>
+                        <span>·</span>
+                        <span>{item.quantity}</span>
+                        <span>·</span>
+                        <span>Est. shelf life: {item.defaultShelfLifeDays} days</span>
+                        {item.sourceRecipe && (
+                          <>
+                            <span>·</span>
+                            <span className="text-emerald-700 font-medium">For {item.sourceRecipe}</span>
+                          </>
+                        )}
+                      </div>
+                      {itemConflicts.length > 0 && (
+                        <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-[11px] font-semibold text-amber-900">
+                          <ShieldAlert className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          <span>{t('allergyWarningBadge')}: {itemConflicts.map(c => `${c.icon} ${c.label}`).join(', ')}</span>
+                        </div>
                       )}
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-stone-500">
-                    ${item.estimatedPrice.toFixed(2)}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteShoppingItem(item.id);
-                    }}
-                    className="p-1.5 text-stone-300 hover:text-red-600 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-stone-500">
+                      €{item.estimatedPrice.toFixed(2)}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteShoppingItem(item.id);
+                      }}
+                      className="p-1.5 text-stone-300 hover:text-red-600 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* Checked Items (Bought in Cart) */}
             {checkedItems.length > 0 && (
@@ -281,48 +295,57 @@ export const ShoppingListView: React.FC<ShoppingListViewProps> = ({
                   </span>
                 </div>
 
-                {checkedItems.map(item => (
-                  <div
-                    key={item.id}
-                    onClick={() => onToggleCheckItem(item.id)}
-                    className="p-4 flex items-center justify-between gap-3 hover:bg-emerald-50/80 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-md bg-emerald-600 border-2 border-emerald-600 text-white flex items-center justify-center">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      </div>
-                      <div>
-                        <span className="text-sm font-semibold text-stone-900 line-through opacity-85">
-                          {item.name}
-                        </span>
-                        <div className="text-xs text-stone-500 mt-0.5 flex items-center gap-1.5">
-                          <span>{item.category}</span>
-                          <span>·</span>
-                          <span>{item.quantity}</span>
-                          <span>·</span>
-                          <span className="text-emerald-800 font-medium">
-                            Will expire in {item.defaultShelfLifeDays} days
+                {checkedItems.map(item => {
+                  const itemConflicts = getItemConflictingAllergies(item.allergens, item.name, userAllergies);
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => onToggleCheckItem(item.id)}
+                      className="p-4 flex items-center justify-between gap-3 hover:bg-emerald-50/80 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-5 h-5 rounded-md bg-emerald-600 border-2 border-emerald-600 text-white flex items-center justify-center">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        </div>
+                        <div>
+                          <span className="text-sm font-semibold text-stone-900 line-through opacity-85">
+                            {item.name}
                           </span>
+                          <div className="text-xs text-stone-500 mt-0.5 flex items-center gap-1.5">
+                            <span>{item.category}</span>
+                            <span>·</span>
+                            <span>{item.quantity}</span>
+                            <span>·</span>
+                            <span className="text-emerald-800 font-medium">
+                              Will expire in {item.defaultShelfLifeDays} days
+                            </span>
+                          </div>
+                          {itemConflicts.length > 0 && (
+                            <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-[11px] font-semibold text-amber-900">
+                              <ShieldAlert className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              <span>{t('allergyWarningBadge')}: {itemConflicts.map(c => `${c.icon} ${c.label}`).join(', ')}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-stone-500">
-                        ${item.estimatedPrice.toFixed(2)}
-                      </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteShoppingItem(item.id);
-                        }}
-                        className="p-1.5 text-stone-300 hover:text-red-600 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-stone-500">
+                          €{item.estimatedPrice.toFixed(2)}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteShoppingItem(item.id);
+                          }}
+                          className="p-1.5 text-stone-300 hover:text-red-600 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -345,10 +368,10 @@ export const ShoppingListView: React.FC<ShoppingListViewProps> = ({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-stone-900">
-                    Turn Bought Items into Pantry Products
+                    {t('shopConvertToPantryBtn').replace('{count}', checkedItems.length.toString())}
                   </h3>
                   <p className="text-xs text-stone-500">
-                    Calculates expiration date starting today based on FoodKeeper shelf-life standards.
+                    {t('pantrySubtitle')}
                   </p>
                 </div>
               </div>
@@ -377,7 +400,7 @@ export const ShoppingListView: React.FC<ShoppingListViewProps> = ({
                     </div>
                     <div className="text-right">
                       <span className="font-semibold text-emerald-700 block">
-                        Expires in {item.defaultShelfLifeDays} days
+                        {item.defaultShelfLifeDays} {t('statusDaysLeft')}
                       </span>
                       <span className="text-[10px] text-stone-400">
                         {formatHumanDate(calculatedDate)}
@@ -388,26 +411,19 @@ export const ShoppingListView: React.FC<ShoppingListViewProps> = ({
               })}
             </div>
 
-            <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 flex items-start gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <p>
-                These items will be removed from your Shopping List and immediately tracked in your active Pantry with urgent notifications as they near expiration.
-              </p>
-            </div>
-
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowConfirmModal(false)}
                 className="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl"
               >
-                Cancel
+                {t('actionCancel')}
               </button>
               <button
                 onClick={handleConfirmConversion}
                 className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Move to Pantry Now</span>
+                <span>{t('shopConvertToPantryBtn').replace('{count}', checkedItems.length.toString())}</span>
               </button>
             </div>
           </div>

@@ -9,6 +9,24 @@ export type FoodCategory =
 
 export type StorageLocation = 'Fridge' | 'Pantry' | 'Freezer';
 
+export type AllergyId = 
+  | 'peanuts'
+  | 'tree_nuts'
+  | 'dairy'
+  | 'eggs'
+  | 'wheat_gluten'
+  | 'soy'
+  | 'fish'
+  | 'shellfish'
+  | 'sesame';
+
+export interface AllergyOption {
+  id: AllergyId;
+  label: string;
+  icon: string;
+  keywords: string[];
+}
+
 export interface PantryItem {
   id: string;
   name: string;
@@ -20,8 +38,10 @@ export interface PantryItem {
   addedDate: string;  // YYYY-MM-DD
   barcode?: string;
   notes?: string;
-  estimatedPrice: number; // in USD
-  weightLbs: number;
+  estimatedPrice: number; // in EUR (€)
+  weightKg: number;
+  allergens?: AllergyId[];
+  weightLbs?: number; // legacy compatibility
 }
 
 export interface RecipeIngredient {
@@ -44,6 +64,7 @@ export interface Recipe {
   ingredients: RecipeIngredient[];
   instructions: string[];
   tipsForExpiringFood?: string;
+  allergens?: AllergyId[];
 }
 
 export interface DonationCenter {
@@ -68,16 +89,18 @@ export interface NotificationItem {
   timestamp: string;
   urgency: 'high' | 'medium' | 'low';
   relatedItemId?: string;
-  actionType: 'cook' | 'donate' | 'general';
+  actionType: 'cook' | 'donate' | 'general' | 'allergy';
   read: boolean;
 }
 
 export interface UserImpactStats {
-  rescuedLbs: number;
-  dollarsSaved: number;
+  rescuedKg: number;
+  eurosSaved: number;
   co2SavedKg: number;
   itemsCooked: number;
   itemsDonated: number;
+  rescuedLbs?: number; // compatibility
+  dollarsSaved?: number; // compatibility
 }
 
 export type SaverTier = 'Master Saver' | 'Eco Champion' | 'Conscious Consumer' | 'Rising Saver';
@@ -88,26 +111,29 @@ export interface TopSaverUser {
   name: string;
   avatar: string;
   tier: SaverTier;
-  rescuedLbs: number;
-  dollarsSaved: number;
+  rescuedKg: number;
+  eurosSaved: number;
   streakDays: number;
   isCurrentUser?: boolean;
   eligibleDiscount: string;
   badge: string;
+  rescuedLbs?: number;
+  dollarsSaved?: number;
 }
 
 export interface DiscountReward {
   id: string;
   code: string;
   partnerStore: string;
-  discountValue: string; // e.g. "25% OFF" or "$15 Credit"
+  discountValue: string; // e.g. "25% OFF" or "15€ Desconto"
   description: string;
   minTier: SaverTier;
-  minLbsRequired: number;
+  minKgRequired: number;
   expiryDate: string;
   category: 'Produce & Groceries' | 'Organic Markets' | 'Bakery & Deli' | 'Local Delivery';
   claimed: boolean;
   terms: string;
+  minLbsRequired?: number;
 }
 
 export interface ShoppingListItem {
@@ -117,11 +143,12 @@ export interface ShoppingListItem {
   quantity: string;
   notes?: string;
   checked: boolean;
-  estimatedPrice: number;
+  estimatedPrice: number; // in EUR (€)
   defaultLocation: StorageLocation;
   defaultShelfLifeDays: number;
   sourceRecipe?: string;
   addedAt: string;
+  allergens?: AllergyId[];
 }
 
 export interface AuthUser {
@@ -131,6 +158,7 @@ export interface AuthUser {
   token: string;
   createdAt: string;
   lastSyncAt?: string;
+  allergies?: AllergyId[];
 }
 
 export interface DeviceSyncData {
@@ -140,5 +168,3 @@ export interface DeviceSyncData {
   userStats: UserImpactStats;
   updatedAt: string;
 }
-
-
