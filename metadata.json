@@ -1,0 +1,10 @@
+{
+  "name": "FreshSaver - Food Expiry & Donation Tracker",
+  "description": "Smart food tracking app to scan groceries, get expiration alerts, match waste-reducing recipes, and find local food donation drop-offs.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
